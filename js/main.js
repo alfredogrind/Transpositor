@@ -5,18 +5,10 @@ import * as ui from './ui.js';
 let songData = []; 
 let targetKey = null;
 
-/**
- * LOGICA DE MODO OSCURO/CLARO
- * Inicialización inmediata del tema al cargar el script
- */
-function startTheme() {
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => ui.initTheme());
-    } else {
-        ui.initTheme();
-    }
-}
-startTheme();
+// Asegurar que el DOM esté listo antes de iniciar el tema
+document.addEventListener('DOMContentLoaded', () => {
+    if (ui.initTheme) ui.initTheme();
+});
 
 const btnProcess = document.getElementById('btnProcess');
 const fileInput = document.getElementById('fileInput');
@@ -115,7 +107,7 @@ btnTranspose.onclick = () => {
         
         const sectionDiv = document.createElement('div');
         sectionDiv.className = 'output-section';
-        // CAMBIO: Se usa var(--text) en lugar de #fff para que cambie según el modo
+        // FIX DE COLOR APLICADO AQUÍ
         sectionDiv.innerHTML = `
             <div class="section-title" style="color: var(--accent2); border:none;">${item.section}</div>
             <div class="chord-grid" style="margin-top:0.5rem">
@@ -126,7 +118,7 @@ btnTranspose.onclick = () => {
     });
 
     document.getElementById('finalOutput').style.display = 'block';
-    window.scrollTo({ top: document.getElementById('finalOutput').offsetTop, behavior: 'smooth' });
+    window.scrollTo({ top: document.getElementById('finalOutput').offsetTop - 50, behavior: 'smooth' });
 };
 
 const toBase64 = file => new Promise(res => {
