@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Transpositor Modular Pro</title>
     <link rel="stylesheet" href="css/styles.css">
-    
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tonaljs/tonal/browser/tonal.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
@@ -30,10 +29,8 @@
             <p id="statusText">Analizando contenido...</p>
         </div>
 
-        <div id="keyDetectionContainer"></div>
-
         <div id="detectionResults"></div>
-        <p id="editHint" class="edit-hint" style="display:none;">💡 Haz clic en los títulos para editarlos</p>
+        <p id="editHint" class="edit-hint" style="display:none; text-align:center; font-size:0.7rem; color:var(--text3);">💡 Haz clic en los títulos para editarlos</p>
 
         <div class="tone-selector" id="toneSelector" style="display:none;">
             <p class="section-title">¿A qué tono quieres transportar?</p>
@@ -47,7 +44,12 @@
         </div>
     </main>
 
-    <button id="themeToggle" class="theme-toggle">☀️/🌙</button>
+    <div id="keyFloatingBadge" class="key-floating-badge"></div>
+
+    <button id="themeToggle" class="theme-toggle">
+        <span class="icon-sun">☀️</span>
+        <span class="icon-moon">🌙</span>
+    </button>
 
     <script type="module" src="js/main.js"></script>
 </body>

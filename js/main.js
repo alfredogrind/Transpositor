@@ -5,9 +5,8 @@ import * as ui from './ui.js';
 let songData = []; 
 let targetKey = null;
 
-// Asegurar que el DOM esté listo antes de iniciar el tema
 document.addEventListener('DOMContentLoaded', () => {
-    if (ui.initTheme) ui.initTheme();
+    ui.initTheme();
 });
 
 const btnProcess = document.getElementById('btnProcess');
@@ -36,7 +35,7 @@ btnProcess.onclick = async () => {
         }
         refreshUI();
     } catch (error) {
-        console.error("Error en escaneo:", error);
+        console.error("Error:", error);
     } finally {
         loaderWrap.style.display = 'none';
     }
@@ -47,10 +46,7 @@ function processTextToSongData(text) {
     lines.forEach(line => {
         let cleanLine = line.trim();
         if (!cleanLine) return;
-
-        if (cleanLine.startsWith('#')) {
-            cleanLine = cleanLine.substring(1).trim();
-        }
+        if (cleanLine.startsWith('#')) cleanLine = cleanLine.substring(1).trim();
 
         const upperLine = cleanLine.toUpperCase();
         const foundSection = music.SECTION_KEYWORDS.find(k => upperLine.includes(k));
@@ -68,6 +64,10 @@ function processTextToSongData(text) {
 }
 
 function refreshUI() {
+    const allChords = songData.flatMap(section => section.chords);
+    const keyInfo = music.detectSongKey(allChords);
+    ui.renderDetectedKey(document.getElementById('keyFloatingBadge'), keyInfo);
+
     ui.renderResults(document.getElementById('detectionResults'), songData, 
         (idx, title) => { songData[idx].section = title; },
         (idx) => { songData.splice(idx, 1); refreshUI(); }
@@ -80,34 +80,21 @@ function refreshUI() {
 }
 
 btnTranspose.onclick = () => {
-    if (!targetKey) return alert("Selecciona un tono de destino.");
+    if (!targetKey) return alert("Selecciona un tono.");
     if (!songData.length || !songData[0].chords.length) return alert("No hay acordes.");
 
     const firstChord = songData[0].chords[0];
-    const chordInfo = Tonal.Chord ? Tonal.Chord.get(firstChord) : Tonal.chord(firstChord);
-    const originalKeyRoot = chordInfo.tonic || firstChord.match(/^[A-G][#b]?/)[0];
+    const originalKeyRoot = Tonal.Chord.get(firstChord).tonic || firstChord.match(/^[A-G][#b]?/)[0];
 
-    let interval = "1P"; 
-    try {
-        if (Tonal.Note && Tonal.Note.distance) {
-            interval = Tonal.Note.distance(originalKeyRoot, targetKey);
-        } else if (Tonal.distance) {
-            interval = Tonal.distance(originalKeyRoot, targetKey);
-        } else if (Tonal.interval) {
-            interval = Tonal.interval(originalKeyRoot, targetKey);
-        }
-    } catch (e) { console.error(e); }
-
-    const preferFlats = ['F', 'Bb', 'Eb', 'Ab', 'Db', 'Gb'].includes(targetKey);
+    const distFn = (Tonal.Note && Tonal.Note.distance) ? Tonal.Note.distance : Tonal.distance;
+    const interval = distFn(originalKeyRoot, targetKey);
     const container = document.getElementById('outputContainer');
     container.innerHTML = "";
     
     songData.forEach(item => {
-        const transposedChords = item.chords.map(chord => music.smartTransposeChord(chord, interval, preferFlats));
-        
+        const transposedChords = item.chords.map(chord => music.smartTransposeChord(chord, interval, ['F', 'Bb', 'Eb', 'Ab', 'Db', 'Gb'].includes(targetKey)));
         const sectionDiv = document.createElement('div');
         sectionDiv.className = 'output-section';
-        // FIX DE COLOR APLICADO AQUÍ
         sectionDiv.innerHTML = `
             <div class="section-title" style="color: var(--accent2); border:none;">${item.section}</div>
             <div class="chord-grid" style="margin-top:0.5rem">

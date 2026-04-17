@@ -4,20 +4,20 @@ export const SECTION_KEYWORDS = ['INTRO', 'ESTROFA', 'VERSO', 'VERSE', 'PRE-CORO
 
 export function extractChordsWithRepetition(text) {
     let results = [];
-    const triplePattern = /\|{3,}(.*?)\|{3,}/g;
-    const doublePattern = /\|{2}(.*?)\|{2}/g;
+    const triplePattern = /\|{3,}(.*?)\|{3,}/g; 
+    const doublePattern = /\|{2}(.*?)\|{2}/g;    
     let tempText = text;
 
     tempText = tempText.replace(triplePattern, (match, content) => {
         const chords = getChordsOnly(content);
         results.push(...chords, ...chords, ...chords);
-        return "";
+        return ""; 
     });
 
     tempText = tempText.replace(doublePattern, (match, content) => {
         const chords = getChordsOnly(content);
         results.push(...chords, ...chords);
-        return "";
+        return ""; 
     });
 
     results.push(...getChordsOnly(tempText));
@@ -48,27 +48,36 @@ function formatQuality(quality) {
 
 export function smartTransposeChord(chord, interval, preferFlats) {
     try {
-        const chordInfo = Tonal.Chord ? Tonal.Chord.get(chord) : Tonal.chord(chord);
+        const chordInfo = Tonal.Chord.get(chord);
         const root = chordInfo.tonic;
         const quality = chordInfo.type || "";
         if (!root) return chord;
 
-        // Buscador de función de transposición (Safe-mode)
-        const transFn = (Tonal.Note && Tonal.Note.transpose) || Tonal.transpose;
-        if (!transFn) return chord;
+        let transposedRoot;
+        if (Tonal.Note && Tonal.Note.transpose) {
+            transposedRoot = Tonal.Note.transpose(root, interval);
+        } else if (Tonal.transpose) {
+            transposedRoot = Tonal.transpose(root, interval);
+        } else { return chord; }
 
-        let transposedRoot = transFn(root, interval);
-
-        // Enarmonía inteligente
-        const enharmonicFn = (Tonal.Note && Tonal.Note.enharmonic) || Tonal.enharmonic;
-        if (enharmonicFn) {
-            if (preferFlats && transposedRoot.includes('#')) transposedRoot = enharmonicFn(transposedRoot);
-            else if (!preferFlats && transposedRoot.includes('b')) transposedRoot = enharmonicFn(transposedRoot);
+        if (preferFlats && transposedRoot.includes('#')) {
+            transposedRoot = Tonal.Note.enharmonic(transposedRoot);
+        } else if (!preferFlats && transposedRoot.includes('b')) {
+            transposedRoot = Tonal.Note.enharmonic(transposedRoot);
         }
 
-        const simplifyFn = (Tonal.Note && Tonal.Note.simplify) || Tonal.simplify;
-        const finalRoot = simplifyFn ? simplifyFn(transposedRoot) : transposedRoot;
-
-        return finalRoot + formatQuality(quality);
+        return (Tonal.Note.simplify(transposedRoot)) + formatQuality(quality);
     } catch (e) { return chord; }
+}
+
+export function detectSongKey(allChords) {
+    if (!allChords || allChords.length === 0) return null;
+    const firstChord = allChords[0];
+    try {
+        const chordInfo = Tonal.Chord.get(firstChord);
+        const root = chordInfo.tonic || firstChord.match(/^[A-G][#b]?/i)[0];
+        const isMinor = chordInfo.type.toLowerCase().includes('minor') || 
+                        (firstChord.includes('m') && !firstChord.toLowerCase().includes('maj'));
+        return { root, quality: isMinor ? 'menor' : 'Mayor' };
+    } catch (e) { return { root: firstChord, quality: '' }; }
 }
