@@ -5,6 +5,19 @@ import * as ui from './ui.js';
 let songData = []; 
 let targetKey = null;
 
+/**
+ * LOGICA DE MODO OSCURO/CLARO
+ * Inicialización inmediata del tema al cargar el script
+ */
+function startTheme() {
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => ui.initTheme());
+    } else {
+        ui.initTheme();
+    }
+}
+startTheme();
+
 const btnProcess = document.getElementById('btnProcess');
 const fileInput = document.getElementById('fileInput');
 const statusText = document.getElementById('statusText');
@@ -43,7 +56,6 @@ function processTextToSongData(text) {
         let cleanLine = line.trim();
         if (!cleanLine) return;
 
-        // Omitir el símbolo # si está al puro inicio de la línea de tonos
         if (cleanLine.startsWith('#')) {
             cleanLine = cleanLine.substring(1).trim();
         }
@@ -54,7 +66,6 @@ function processTextToSongData(text) {
         if (foundSection) {
             songData.push({ section: upperLine, chords: [] });
         } else {
-            // Llamada a la función de repeticiones (Línea crítica corregida)
             const chords = music.extractChordsWithRepetition(cleanLine);
             if (chords.length > 0) {
                 if (songData.length === 0) songData.push({ section: "INICIO", chords: [] });
@@ -104,10 +115,11 @@ btnTranspose.onclick = () => {
         
         const sectionDiv = document.createElement('div');
         sectionDiv.className = 'output-section';
+        // CAMBIO: Se usa var(--text) en lugar de #fff para que cambie según el modo
         sectionDiv.innerHTML = `
             <div class="section-title" style="color: var(--accent2); border:none;">${item.section}</div>
             <div class="chord-grid" style="margin-top:0.5rem">
-                ${transposedChords.map(c => `<span class="chord-pill" style="border-color: var(--accent2); color: #fff;">${c}</span>`).join('')}
+                ${transposedChords.map(c => `<span class="chord-pill" style="border-color: var(--accent2); color: var(--text);">${c}</span>`).join('')}
             </div>
         `;
         container.appendChild(sectionDiv);
