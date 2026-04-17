@@ -1,0 +1,8 @@
+La instruccion mejor seria es que si detecta que en una linea hay una letra que precede a un - no la considere linea a omitir ya que como te comente normalmente las notas musicales estan siempre encima de las letras. La imagen es el ejemplo, y aparte detecta espacios continuos y palabras que no forman oracion o palabra que no la omita.
+
+
+La instruccion serian dos:
+
+1) Si se detecta que letras sueltas son acompanadas de el caracter especial - no se omita la linea.
+2) Si se detectan letras sueltas que la letra mas cercana no parece palabra o oracion, que no la omita
+3) Todo lo contrario a estas dos condiciones debe omitirlo.

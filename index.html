@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transpositor Modular Pro</title>
+    <link rel="stylesheet" href="css/styles.css">
+    
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tonaljs/tonal/browser/tonal.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+</head>
+<body>
+    <header>
+        <div class="logo-mark">♫</div>
+        <div><p>Sistema Modular</p><h1>Trans<span>positor</span></h1></div>
+    </header>
+
+    <main>
+        <div class="upload-zone" id="dropZone">
+            <input type="file" id="fileInput" accept="image/*,application/pdf" multiple>
+            <h3>Carga tus archivos</h3>
+            <p>PDF o Imágenes de partituras/cifrados</p>
+        </div>
+
+        <button class="btn-action" id="btnProcess" disabled>Escanear Canción</button>
+
+        <div class="loader-wrap" id="loaderWrap" style="display: none;">
+            <div class="loader"></div>
+            <p id="statusText">Analizando contenido...</p>
+        </div>
+
+        <div id="detectionResults"></div>
+        <p id="editHint" class="edit-hint" style="display:none;">💡 Haz clic en los títulos para editarlos</p>
+
+        <div class="tone-selector" id="toneSelector" style="display:none;">
+            <p class="section-title">¿A qué tono quieres transportar?</p>
+            <div class="grid-tones" id="gridTones"></div>
+            <button class="btn-action" id="btnTranspose" style="margin-top: 20px;">Transportar ahora</button>
+        </div>
+
+        <div id="finalOutput" style="display:none;">
+            <h2 style="font-family: serif; margin-bottom: 1.5rem; margin-top: 3rem;">Resultado Transportado</h2>
+            <div id="outputContainer"></div>
+        </div>
+    </main>
+
+    <script type="module" src="js/main.js"></script>
+</body>
+</html>
