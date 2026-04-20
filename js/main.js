@@ -89,20 +89,12 @@ btnTranspose.onclick = () => {
     const distFn = (Tonal.Note && Tonal.Note.distance) ? Tonal.Note.distance : Tonal.distance;
     const interval = distFn(originalKeyRoot, targetKey);
     const container = document.getElementById('outputContainer');
-    container.innerHTML = "";
-    
-    songData.forEach(item => {
-        const transposedChords = item.chords.map(chord => music.smartTransposeChord(chord, interval, ['F', 'Bb', 'Eb', 'Ab', 'Db', 'Gb'].includes(targetKey)));
-        const sectionDiv = document.createElement('div');
-        sectionDiv.className = 'output-section';
-        sectionDiv.innerHTML = `
-            <div class="section-title" style="color: var(--accent2); border:none;">${item.section}</div>
-            <div class="chord-grid" style="margin-top:0.5rem">
-                ${transposedChords.map(c => `<span class="chord-pill" style="border-color: var(--accent2); color: var(--text);">${c}</span>`).join('')}
-            </div>
-        `;
-        container.appendChild(sectionDiv);
-    });
+    const preferFlats = ['F', 'Bb', 'Eb', 'Ab', 'Db', 'Gb'].includes(targetKey);
+    const transposedData = songData.map(item => ({
+        section: item.section,
+        chords: item.chords.map(chord => music.smartTransposeChord(chord, interval, preferFlats))
+    }));
+    ui.renderFinalResults(container, transposedData);
 
     document.getElementById('finalOutput').style.display = 'block';
     window.scrollTo({ top: document.getElementById('finalOutput').offsetTop - 50, behavior: 'smooth' });

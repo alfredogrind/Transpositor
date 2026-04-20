@@ -1,8 +1,8 @@
 /**
- * Renderiza los bloques de cada sección detectada tras el escaneo
+ * Renderiza los bloques de cada sección para revisión (Escaneo)
  */
 export function renderResults(container, data, onUpdate, onDelete) {
-    container.innerHTML = `<h3 style="margin-bottom:1rem; font-size: 0.9rem; color: var(--text2);">Revisión de secciones:</h3>`;
+    container.innerHTML = `<h3 class="revision-title">Revisión de secciones:</h3>`;
     
     data.forEach((item, index) => {
         const div = document.createElement('div');
@@ -10,54 +10,71 @@ export function renderResults(container, data, onUpdate, onDelete) {
         div.innerHTML = `
             <div class="section-header">
                 <div class="section-title" contenteditable="true">${item.section}</div>
-                <button class="btn-delete" style="background:none; border:none; color:var(--text3); cursor:pointer; font-size:0.7rem;">Eliminar</button>
+                <button class="btn-delete">Eliminar</button>
             </div>
             <div class="chord-grid">
                 ${item.chords.map(c => `<span class="chord-pill">${c}</span>`).join('')}
             </div>
         `;
         
-        // Sincronización de edición y eliminación
         div.querySelector('.section-title').onblur = (e) => onUpdate(index, e.target.textContent);
         div.querySelector('.btn-delete').onclick = () => onDelete(index);
-        
         container.appendChild(div);
     });
 }
 
 /**
- * Pinta la tonalidad detectada en el componente flotante (HUD) en la esquina inferior izquierda
+ * Renderiza el resultado final — cada sección en su propia tarjeta (igual que la revisión)
  */
-export function renderDetectedKey(container, keyInfo) {
-    if (!container) return;
-    if (!keyInfo) {
-        container.style.display = "none";
-        return;
-    }
+export function renderFinalResults(container, data) {
+    container.innerHTML = "";
     
-    // Muestra el contenedor flotante con el tono y modo
-    container.style.display = "flex";
-    container.innerHTML = `
-        <div class="floating-key-content">
-            <span class="f-key-label">Tono Original</span>
-            <span class="f-key-value">${keyInfo.root} ${keyInfo.quality}</span>
-        </div>
-    `;
+    data.forEach((item) => {
+        const card = document.createElement('div');
+        card.className = 'section-box';
+        card.innerHTML = `
+            <div class="section-header">
+                <div class="section-title">${item.section}</div>
+            </div>
+            <div class="chord-grid">
+                ${item.chords.map(c => `<span class="btn-tone chord-result">${c}</span>`).join('')}
+            </div>
+        `;
+        container.appendChild(card);
+    });
 }
 
 /**
- * Genera la cuadrícula de 12 botones para elegir el tono de destino
+ * Pinta la tonalidad detectada en el badge flotante (Centro de Control)
+ */
+export function renderDetectedKey(container, keyInfo) {
+    if (!container) return;
+    
+    if (!keyInfo) {
+        container.classList.remove('visible');
+        return;
+    }
+    
+    container.innerHTML = `
+        <span class="f-key-label">Tono Original</span>
+        <span class="f-key-value">${keyInfo.root} ${keyInfo.quality}</span>
+    `;
+
+    // Activa la visibilidad del badge en el grupo de control
+    container.classList.add('visible');
+}
+
+/**
+ * Genera la cuadrícula de botones para elegir el tono
  */
 export function renderToneGrid(container, onSelect) {
     const notes = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
-    container.innerHTML = ""; // Limpiar antes de regenerar
-    
+    container.innerHTML = "";
     notes.forEach(note => {
         const btn = document.createElement('button');
         btn.className = 'btn-tone';
         btn.textContent = note;
         btn.onclick = () => {
-            // Manejo visual de selección única
             document.querySelectorAll('.btn-tone').forEach(b => b.classList.remove('selected'));
             btn.classList.add('selected');
             onSelect(note);
@@ -67,22 +84,16 @@ export function renderToneGrid(container, onSelect) {
 }
 
 /**
- * Inicializa la gestión del tema (Light/Dark) y recupera la preferencia del usuario
+ * Inicializa el tema Light/Dark con persistencia
  */
 export function initTheme() {
     const body = document.body;
     const themeToggle = document.getElementById('themeToggle');
-
-    // Aplicar tema persistente desde localStorage
-    if (localStorage.getItem('theme') === 'light') {
-        body.classList.add('light-mode');
-    }
-
+    if (localStorage.getItem('theme') === 'light') body.classList.add('light-mode');
     if (themeToggle) {
         themeToggle.onclick = () => {
             body.classList.toggle('light-mode');
-            const currentTheme = body.classList.contains('light-mode') ? 'light' : 'dark';
-            localStorage.setItem('theme', currentTheme); // Guardar preferencia
+            localStorage.setItem('theme', body.classList.contains('light-mode') ? 'light' : 'dark');
         };
     }
 }

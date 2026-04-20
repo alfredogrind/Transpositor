@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Transpositor Modular Pro</title>
+    <title>Transpositor Modular Pro | Apple Style</title>
     <link rel="stylesheet" href="css/styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tonaljs/tonal/browser/tonal.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
@@ -12,44 +13,53 @@
 <body>
     <header>
         <div class="logo-mark">♫</div>
-        <div><p>Sistema Modular</p><h1>Trans<span>positor</span></h1></div>
+        <div>
+            <p style="font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.2em; color: var(--text3);">Sistema Modular</p>
+            <h1>Trans<span>positor</span></h1>
+        </div>
     </header>
 
     <main>
         <div class="upload-zone" id="dropZone">
-            <input type="file" id="fileInput" accept="image/*,application/pdf" multiple>
-            <h3>Carga tus archivos</h3>
-            <p>PDF o Imágenes de partituras/cifrados</p>
-        </div>
+            <input type="file" id="fileInput" accept="image/*,application/pdf" multiple style="display: none;">
+            
+            <label for="fileInput" class="custom-file-trigger">
+                <span class="upload-icon">⊕</span>
+                <span id="fileInputText">Seleccionar partituras</span>
+            </label>
 
-        <button class="btn-action" id="btnProcess" disabled>Escanear Canción</button>
+            <h3 style="font-size: 1.2rem; margin-top: 1rem; margin-bottom: 5px;">Carga tus archivos</h3>
+            <p style="color: var(--text3); font-size: 0.85rem; margin-bottom: 1.5rem;">PDF o Imágenes de partituras/cifrados</p>
+            
+            <button class="btn-action" id="btnProcess" disabled>Escanear Canción</button>
+        </div>
 
         <div class="loader-wrap" id="loaderWrap" style="display: none;">
             <div class="loader"></div>
-            <p id="statusText">Analizando contenido...</p>
+            <p id="statusText" style="color: var(--text2); font-weight: 500;">Analizando contenido...</p>
         </div>
 
-        <div id="detectionResults"></div>
-        <p id="editHint" class="edit-hint" style="display:none; text-align:center; font-size:0.7rem; color:var(--text3);">💡 Haz clic en los títulos para editarlos</p>
+        <div id="detectionResults" style="width: 100%;"></div>
 
         <div class="tone-selector" id="toneSelector" style="display:none;">
-            <p class="section-title">¿A qué tono quieres transportar?</p>
-            <div class="grid-tones" id="gridTones"></div>
-            <button class="btn-action" id="btnTranspose" style="margin-top: 20px;">Transportar ahora</button>
+            <p class="section-title" style="margin-bottom: 1.5rem; text-align: center;">¿A qué tono quieres transportar?</p>
+            <div id="gridTones" class="grid-tones"></div>
+            <button class="btn-action" id="btnTranspose" style="margin-top: 2rem;">Transportar ahora</button>
         </div>
 
-        <div id="finalOutput" style="display:none;">
-            <h2 style="font-family: serif; margin-bottom: 1.5rem; margin-top: 3rem;">Resultado Transportado</h2>
-            <div id="outputContainer"></div>
+        <div id="finalOutput" style="display:none; width: 100%;">
+            <p class="result-header">Resultado Transportado</p>
+            <div id="outputContainer" style="width: 100%;"></div>
         </div>
     </main>
 
-    <div id="keyFloatingBadge" class="key-floating-badge"></div>
-
-    <button id="themeToggle" class="theme-toggle">
-        <span class="icon-sun">☀️</span>
-        <span class="icon-moon">🌙</span>
-    </button>
+    <div id="floatingControlGroup" class="floating-control-group">
+        <div id="keyFloatingBadge" class="key-floating-badge"></div>
+        <button id="themeToggle" class="theme-toggle" title="Cambiar modo de color">
+            <span class="icon-sun">☀️</span>
+            <span class="icon-moon">🌙</span>
+        </button>
+    </div>
 
     <script type="module" src="js/main.js"></script>
 </body>
