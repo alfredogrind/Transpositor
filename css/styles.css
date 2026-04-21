@@ -11,7 +11,8 @@
   --radius: 28px;
   --card-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.05);
   --transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-  
+  --accent-glow: rgba(200, 169, 110, 0.25);
+
   --control-item-bg: rgba(255, 255, 255, 0.12);
   --chord-odd-bg: rgba(255, 255, 255, 0.1); 
   --chord-odd-text: #f5f5f7;
@@ -130,9 +131,9 @@ main {
   letter-spacing: 0.03em;
   cursor: pointer; 
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 4px 15px rgba(200, 169, 110, 0.2);
+  box-shadow: 0 4px 15px var(--accent-glow);
 }
-.btn-action:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(200, 169, 110, 0.3); filter: brightness(1.1); }
+.btn-action:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 6px 20px var(--accent-glow); filter: brightness(1.1); }
 .btn-action:active:not(:disabled) { transform: scale(0.97); }
 .btn-action:disabled { opacity: 0.15; cursor: not-allowed; }
 
@@ -155,7 +156,7 @@ main {
 }
 
 .btn-tone { cursor: pointer; }
-.btn-tone.selected { background: var(--accent); color: #000; border-color: var(--accent); box-shadow: 0 4px 12px rgba(200, 169, 110, 0.3); }
+.btn-tone.selected { background: var(--accent); color: #000; border-color: var(--accent); box-shadow: 0 4px 12px var(--accent-glow); }
 
 #detectionResults, #outputContainer { display: flex; flex-direction: column; gap: 1.25rem; width: 100%; }
 
@@ -205,8 +206,170 @@ body.light-mode .icon-sun, body:not(.light-mode) .icon-moon { display: none; }
 }
 
 .chord-grid .chord-result:nth-child(even) {
-    background: var(--chord-even-bg) !important; 
+    background: var(--chord-even-bg) !important;
     color: var(--chord-even-text) !important;
     border-color: var(--accent) !important;
-    box-shadow: 0 4px 12px rgba(200, 169, 110, 0.2) !important;
+    box-shadow: 0 4px 12px var(--accent-glow) !important;
+}
+
+/* ─── PALETA 1: Nocturno Profesional (dark) / Minimalista Profesional (light) ─── */
+body[data-palette="1"] {
+  --bg: rgb(10, 15, 25);
+  --surface: rgba(25, 35, 50, 0.85);
+  --surface2: rgba(50, 65, 85, 0.5);
+  --border: rgba(50, 65, 85, 0.7);
+  --accent: rgb(96, 165, 250);
+  --text: rgb(240, 245, 255);
+  --text2: rgb(160, 170, 190);
+  --text3: rgb(100, 110, 125);
+  --card-shadow: 0 20px 40px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(96, 165, 250, 0.08);
+  --control-item-bg: rgba(50, 65, 85, 0.8);
+  --chord-odd-bg: rgba(50, 65, 85, 0.5);
+  --chord-odd-text: rgb(240, 245, 255);
+  --chord-even-text: #000000;
+  --accent-glow: rgba(96, 165, 250, 0.25);
+}
+body.light-mode[data-palette="1"] {
+  --bg: rgb(255, 255, 255);
+  --surface: rgba(248, 249, 250, 0.9);
+  --surface2: rgba(225, 231, 239, 0.5);
+  --border: rgba(225, 231, 239, 0.9);
+  --accent: rgb(59, 130, 246);
+  --text: rgb(20, 25, 35);
+  --text2: rgb(100, 110, 125);
+  --text3: rgb(130, 140, 155);
+  --card-shadow: 0 10px 30px rgba(59, 130, 246, 0.08), 0 0 0 1px rgba(0, 0, 0, 0.02);
+  --control-item-bg: rgba(225, 231, 239, 0.8);
+  --chord-odd-bg: rgb(248, 249, 250);
+  --chord-odd-text: rgb(20, 25, 35);
+  --chord-even-text: #ffffff;
+  --accent-glow: rgba(59, 130, 246, 0.25);
+}
+
+/* ─── PALETA 2: Cálido Nocturno (dark) / Cálido Creativo (light) ─── */
+body[data-palette="2"] {
+  --bg: rgb(20, 15, 10);
+  --surface: rgba(40, 30, 25, 0.85);
+  --surface2: rgba(60, 45, 40, 0.5);
+  --border: rgba(60, 45, 40, 0.7);
+  --accent: rgb(251, 146, 60);
+  --text: rgb(255, 250, 245);
+  --text2: rgb(180, 160, 145);
+  --text3: rgb(120, 100, 85);
+  --card-shadow: 0 20px 40px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(251, 146, 60, 0.08);
+  --control-item-bg: rgba(60, 45, 40, 0.8);
+  --chord-odd-bg: rgba(60, 45, 40, 0.5);
+  --chord-odd-text: rgb(255, 250, 245);
+  --chord-even-text: #000000;
+  --accent-glow: rgba(251, 146, 60, 0.25);
+}
+body.light-mode[data-palette="2"] {
+  --bg: rgb(255, 255, 255);
+  --surface: rgba(255, 250, 245, 0.9);
+  --surface2: rgba(240, 235, 225, 0.5);
+  --border: rgba(240, 235, 225, 0.9);
+  --accent: rgb(234, 88, 12);
+  --text: rgb(25, 20, 15);
+  --text2: rgb(120, 105, 95);
+  --text3: rgb(150, 130, 115);
+  --card-shadow: 0 10px 30px rgba(234, 88, 12, 0.08), 0 0 0 1px rgba(0, 0, 0, 0.02);
+  --control-item-bg: rgba(240, 235, 225, 0.8);
+  --chord-odd-bg: rgb(255, 250, 245);
+  --chord-odd-text: rgb(25, 20, 15);
+  --chord-even-text: #ffffff;
+  --accent-glow: rgba(234, 88, 12, 0.25);
+}
+
+/* ─── PALETA 3: Verdor Oscuro (dark) / Naturista Sofisticado (light) ─── */
+body[data-palette="3"] {
+  --bg: rgb(8, 20, 15);
+  --surface: rgba(25, 45, 40, 0.85);
+  --surface2: rgba(45, 70, 65, 0.5);
+  --border: rgba(45, 70, 65, 0.7);
+  --accent: rgb(74, 222, 128);
+  --text: rgb(245, 255, 250);
+  --text2: rgb(150, 180, 170);
+  --text3: rgb(95, 120, 110);
+  --card-shadow: 0 20px 40px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(74, 222, 128, 0.08);
+  --control-item-bg: rgba(45, 70, 65, 0.8);
+  --chord-odd-bg: rgba(45, 70, 65, 0.5);
+  --chord-odd-text: rgb(245, 255, 250);
+  --chord-even-text: #000000;
+  --accent-glow: rgba(74, 222, 128, 0.25);
+}
+body.light-mode[data-palette="3"] {
+  --bg: rgb(255, 255, 255);
+  --surface: rgba(250, 253, 248, 0.9);
+  --surface2: rgba(230, 240, 235, 0.5);
+  --border: rgba(230, 240, 235, 0.9);
+  --accent: rgb(34, 197, 94);
+  --text: rgb(22, 35, 28);
+  --text2: rgb(95, 115, 105);
+  --text3: rgb(120, 140, 130);
+  --card-shadow: 0 10px 30px rgba(34, 197, 94, 0.08), 0 0 0 1px rgba(0, 0, 0, 0.02);
+  --control-item-bg: rgba(230, 240, 235, 0.8);
+  --chord-odd-bg: rgb(250, 253, 248);
+  --chord-odd-text: rgb(22, 35, 28);
+  --chord-even-text: #ffffff;
+  --accent-glow: rgba(34, 197, 94, 0.25);
+}
+
+/* ─── SELECTOR DE PALETA (BURBUJA) ─── */
+.icon-palette { color: var(--accent); font-size: 1.1rem; transition: var(--transition); }
+
+.palette-wrapper { position: relative; }
+
+.palette-picker {
+    position: absolute;
+    bottom: calc(100% + 12px);
+    right: 0;
+    background: var(--surface);
+    backdrop-filter: blur(25px) saturate(180%);
+    -webkit-backdrop-filter: blur(25px) saturate(180%);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 175px;
+    box-shadow: var(--card-shadow);
+    opacity: 0;
+    transform: translateY(8px) scale(0.95);
+    pointer-events: none;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    z-index: 10000;
+}
+.palette-picker.open {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    pointer-events: auto;
+}
+
+.palette-option {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 12px;
+    border-radius: 13px;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+.palette-option:hover { background: var(--surface2); }
+.palette-option.active { background: var(--surface2); }
+.palette-option.active .pal-name { color: var(--accent); font-weight: 600; }
+
+.pal-swatch {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.25);
+}
+.pal-name {
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: var(--text2);
+    white-space: nowrap;
+    transition: color 0.15s;
 }

@@ -83,17 +83,62 @@ export function renderToneGrid(container, onSelect) {
     });
 }
 
-/**
- * Inicializa el tema Light/Dark con persistencia
- */
+const PALETTES = [
+    { name: 'Clásico',     swatch: '#c8a96e' },
+    { name: 'Profesional', swatch: 'rgb(96, 165, 250)' },
+    { name: 'Cálido',      swatch: 'rgb(251, 146, 60)' },
+    { name: 'Verdor',      swatch: 'rgb(74, 222, 128)' },
+];
+
+function applyPalette(index) {
+    document.body.setAttribute('data-palette', String(index));
+    document.querySelectorAll('.palette-option').forEach((opt, i) => {
+        opt.classList.toggle('active', i === index);
+    });
+}
+
 export function initTheme() {
     const body = document.body;
     const themeToggle = document.getElementById('themeToggle');
+    const paletteToggle = document.getElementById('paletteToggle');
+    const palettePicker = document.getElementById('palettePicker');
+
     if (localStorage.getItem('theme') === 'light') body.classList.add('light-mode');
+
+    if (palettePicker) {
+        PALETTES.forEach((pal, i) => {
+            const opt = document.createElement('div');
+            opt.className = 'palette-option';
+            opt.innerHTML = `
+                <span class="pal-swatch" style="background:${pal.swatch}"></span>
+                <span class="pal-name">${pal.name}</span>
+            `;
+            opt.onclick = () => {
+                applyPalette(i);
+                localStorage.setItem('palette', String(i));
+                palettePicker.classList.remove('open');
+            };
+            palettePicker.appendChild(opt);
+        });
+    }
+
+    const savedPalette = parseInt(localStorage.getItem('palette') || '0', 10);
+    applyPalette(savedPalette);
+
     if (themeToggle) {
         themeToggle.onclick = () => {
             body.classList.toggle('light-mode');
             localStorage.setItem('theme', body.classList.contains('light-mode') ? 'light' : 'dark');
         };
+    }
+
+    if (paletteToggle && palettePicker) {
+        paletteToggle.onclick = (e) => {
+            e.stopPropagation();
+            palettePicker.classList.toggle('open');
+        };
+        document.addEventListener('click', () => {
+            palettePicker.classList.remove('open');
+        });
     }
 }
