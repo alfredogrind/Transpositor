@@ -15,7 +15,33 @@ const statusText = document.getElementById('statusText');
 const loaderWrap = document.getElementById('loaderWrap');
 const btnTranspose = document.getElementById('btnTranspose');
 
-fileInput.onchange = () => { btnProcess.disabled = false; };
+fileInput.onchange = async () => {
+    btnProcess.disabled = fileInput.files.length === 0;
+    const container = document.getElementById('thumbnailContainer');
+    if (!container) return;
+    container.innerHTML = '';
+    for (const file of Array.from(fileInput.files)) {
+        let src;
+        if (file.type === 'application/pdf') {
+            const ab = await file.arrayBuffer();
+            const pdf = await pdfjsLib.getDocument(ab).promise;
+            const page = await pdf.getPage(1);
+            const vp = page.getViewport({ scale: 0.5 });
+            const canvas = document.createElement('canvas');
+            canvas.width = vp.width; canvas.height = vp.height;
+            await page.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise;
+            src = canvas.toDataURL('image/jpeg', 0.7);
+        } else {
+            src = URL.createObjectURL(file);
+        }
+        const div = document.createElement('div');
+        div.className = 'thumb-item';
+        const img = document.createElement('img');
+        img.src = src;
+        div.appendChild(img);
+        container.appendChild(div);
+    }
+};
 
 btnProcess.onclick = async () => {
     try {
