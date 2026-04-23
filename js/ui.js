@@ -1,7 +1,8 @@
 /**
  * Renderiza los bloques de cada sección para revisión (Escaneo)
+ * El botón del lápiz ahora activa la edición del nombre de la sección.
  */
-export function renderResults(container, data, onUpdate, onDelete) {
+export function renderResults(container, data, onUpdate) {
     container.innerHTML = `<h3 class="revision-title">Revisión de secciones:</h3>`;
     
     data.forEach((item, index) => {
@@ -9,22 +10,35 @@ export function renderResults(container, data, onUpdate, onDelete) {
         div.className = 'section-box';
         div.innerHTML = `
             <div class="section-header">
-                <div class="section-title" contenteditable="true">${item.section}</div>
-                <button class="btn-delete">Eliminar</button>
+                <div class="section-title" id="title-${index}" contenteditable="true">${item.section}</div>
+                <button class="btn-edit-icon" title="Editar nombre de sección">✎</button>
             </div>
             <div class="chord-grid">
                 ${item.chords.map(c => `<span class="chord-pill">${c}</span>`).join('')}
             </div>
         `;
         
-        div.querySelector('.section-title').onblur = (e) => onUpdate(index, e.target.textContent);
-        div.querySelector('.btn-delete').onclick = () => onDelete(index);
+        const titleElement = div.querySelector('.section-title');
+        titleElement.onblur = (e) => onUpdate(index, e.target.textContent);
+
+        // Nueva lógica: El botón pone el foco en el texto para editar
+        div.querySelector('.btn-edit-icon').onclick = () => {
+            titleElement.focus();
+            // Opcional: coloca el cursor al final del texto
+            const range = document.createRange();
+            const sel = window.getSelection();
+            range.selectNodeContents(titleElement);
+            range.collapse(false);
+            sel.removeAllRanges();
+            sel.addRange(range);
+        };
+
         container.appendChild(div);
     });
 }
 
 /**
- * Renderiza el resultado final — cada sección en su propia tarjeta (igual que la revisión)
+ * Renderiza el resultado final — cada sección en su propia tarjeta
  */
 export function renderFinalResults(container, data) {
     container.innerHTML = "";
@@ -46,6 +60,7 @@ export function renderFinalResults(container, data) {
 
 /**
  * Pinta la tonalidad detectada en el badge flotante (Centro de Control)
+ * Muestra solo el Tono (Raiz) sin calidad mayor o menor.
  */
 export function renderDetectedKey(container, keyInfo) {
     if (!container) return;
@@ -55,12 +70,12 @@ export function renderDetectedKey(container, keyInfo) {
         return;
     }
     
+    const keyDisplay = keyInfo.quality === 'menor' ? keyInfo.root + 'm' : keyInfo.root;
     container.innerHTML = `
-        <span class="f-key-label">Tono Original</span>
-        <span class="f-key-value">${keyInfo.root} ${keyInfo.quality}</span>
+        <span class="f-key-label">Raíz</span>
+        <span class="f-key-value">${keyDisplay}</span>
     `;
 
-    // Activa la visibilidad del badge en el grupo de control
     container.classList.add('visible');
 }
 
@@ -106,7 +121,7 @@ const SIZES = [
 ];
 
 function applyChordSize(value) {
-    document.body.setAttribute('data-chord-size', value);
+    document.documentElement.setAttribute('data-chord-size', value);
     document.querySelectorAll('.a11y-size-btn').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.size === value);
     });
@@ -122,12 +137,11 @@ export function initTheme() {
 
     if (localStorage.getItem('theme') === 'light') body.classList.add('light-mode');
 
-    // Mover pickers al <body> para que position:fixed sea relativo al viewport
-    // (el control-panel usa transform en su animación, lo que atrapa a los fixed children)
     if (palettePicker) document.body.appendChild(palettePicker);
     if (a11yPicker)    document.body.appendChild(a11yPicker);
+    const keyBadge = document.getElementById('keyFloatingBadge');
+    if (keyBadge) document.body.appendChild(keyBadge);
 
-    // Paleta
     if (palettePicker) {
         PALETTES.forEach((pal, i) => {
             const opt = document.createElement('div');
@@ -146,7 +160,6 @@ export function initTheme() {
     }
     applyPalette(parseInt(localStorage.getItem('palette') || '0', 10));
 
-    // Accesibilidad: tamaño de acordes
     if (a11yPicker) {
         SIZES.forEach(({ value, fontSize }) => {
             const btn = document.createElement('button');
@@ -164,7 +177,6 @@ export function initTheme() {
     }
     applyChordSize(localStorage.getItem('chordSize') || 'md');
 
-    // Tema
     if (themeToggle) {
         themeToggle.onclick = () => {
             body.classList.toggle('light-mode');
@@ -172,12 +184,10 @@ export function initTheme() {
         };
     }
 
-    // — ESTADO COMPARTIDO —
     const floatingGroup = document.getElementById('floatingControlGroup');
     const controlFab    = document.getElementById('controlFab');
     const dragState = { active: false, hasMoved: false, startX: 0, startY: 0, startLeft: 0, startTop: 0 };
 
-    // Cerrar panel y burbujas al clicar fuera
     document.addEventListener('click', (e) => {
         palettePicker?.classList.remove('open');
         a11yPicker?.classList.remove('open');
@@ -186,20 +196,39 @@ export function initTheme() {
         }
     });
 
-    // FAB: abrir / cerrar panel
+    // Guarda el valor de `bottom` antes de cambiar a anclaje por `top` al abrir hacia abajo
+    let savedBottomBeforeOpenDown = null;
+
     if (controlFab) {
         controlFab.addEventListener('click', (e) => {
             e.stopPropagation();
             if (dragState.hasMoved) return;
+
+            const rect = floatingGroup.getBoundingClientRect();
+            const isUpperHalf = rect.bottom < window.innerHeight / 2;
+            floatingGroup.classList.toggle('open-down', isUpperHalf);
+
             const isOpen = floatingGroup.classList.toggle('open');
-            if (!isOpen) {
+
+            if (isOpen && isUpperHalf) {
+                // Al abrir hacia abajo: anclar por `top` para que el panel crezca
+                // hacia abajo sin salirse por arriba del viewport
+                savedBottomBeforeOpenDown = window.innerHeight - rect.bottom;
+                floatingGroup.style.top    = rect.top + 'px';
+                floatingGroup.style.bottom = 'auto';
+            } else if (!isOpen) {
                 palettePicker?.classList.remove('open');
                 a11yPicker?.classList.remove('open');
+                // Al cerrar: restaurar anclaje por `bottom` (usado por el drag)
+                if (savedBottomBeforeOpenDown !== null) {
+                    floatingGroup.style.bottom = savedBottomBeforeOpenDown + 'px';
+                    floatingGroup.style.top    = 'auto';
+                    savedBottomBeforeOpenDown  = null;
+                }
             }
         });
     }
 
-    // — DRAG (siempre bottom/right para que el panel siempre se abra hacia arriba) —
     const PAD = 16;
 
     function dragStart(clientX, clientY) {
@@ -222,6 +251,7 @@ export function initTheme() {
         const h = floatingGroup.offsetHeight;
         const newBottom = dragState.startBottom - dy;
         const newRight  = dragState.startRight  - dx;
+        floatingGroup.style.top    = 'auto'; // limpiar top si quedó de open-down
         floatingGroup.style.bottom = Math.max(PAD, Math.min(newBottom, window.innerHeight - h - PAD)) + 'px';
         floatingGroup.style.right  = Math.max(PAD, Math.min(newRight,  window.innerWidth  - w - PAD)) + 'px';
     }
@@ -248,18 +278,23 @@ export function initTheme() {
     document.addEventListener('mouseup',   dragEnd);
     document.addEventListener('touchend',  dragEnd);
 
-    // Restaurar posición guardada
     const savedPos = localStorage.getItem('controlPos');
     if (savedPos && floatingGroup) {
         try {
             const pos = JSON.parse(savedPos);
+            const w = floatingGroup.offsetWidth  || 54;
+            const h = floatingGroup.offsetHeight || 54;
+            let bottom, right;
             if (pos.bottom !== undefined) {
-                floatingGroup.style.bottom = pos.bottom;
-                floatingGroup.style.right  = pos.right;
+                bottom = parseFloat(pos.bottom);
+                right  = parseFloat(pos.right);
             } else if (pos.top !== undefined) {
-                // Migrar posiciones antiguas (top/left) a bottom/right
-                floatingGroup.style.bottom = (window.innerHeight - parseFloat(pos.top) - floatingGroup.offsetHeight) + 'px';
-                floatingGroup.style.right  = (window.innerWidth  - parseFloat(pos.left) - floatingGroup.offsetWidth)  + 'px';
+                bottom = window.innerHeight - parseFloat(pos.top) - h;
+                right  = window.innerWidth  - parseFloat(pos.left) - w;
+            }
+            if (bottom !== undefined) {
+                floatingGroup.style.bottom = Math.max(PAD, Math.min(bottom, window.innerHeight - h - PAD)) + 'px';
+                floatingGroup.style.right  = Math.max(PAD, Math.min(right,  window.innerWidth  - w - PAD)) + 'px';
             }
         } catch (_) { localStorage.removeItem('controlPos'); }
     }
@@ -271,19 +306,15 @@ export function initTheme() {
         const pw  = picker.offsetWidth  || 180;
         const ph  = picker.offsetHeight || 160;
 
-        // Horizontal: a la izquierda del panel de control completo
         const spaceOnLeft = groupRect.left - GAP;
         if (spaceOnLeft >= pw) {
-            // Cabe a la izquierda del panel
             picker.style.right = (window.innerWidth - groupRect.left + GAP) + 'px';
             picker.style.left  = 'auto';
         } else {
-            // No cabe a la izquierda: mostrar a la derecha del panel
             picker.style.left  = (groupRect.right + GAP) + 'px';
             picker.style.right = 'auto';
         }
 
-        // Vertical: centrado en el botón que lo abrió, clampeado al viewport
         const btnCenterY = r.top + r.height / 2;
         let top = btnCenterY - ph / 2;
         top = Math.max(GAP, Math.min(top, window.innerHeight - ph - GAP));

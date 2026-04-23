@@ -30,10 +30,11 @@ function getChordsOnly(text) {
     const matches = cleanText.match(chordRegex) || [];
 
     return matches.map(chord => {
-        let normalized = chord.replace(/\s+/g, '');
-        if (normalized === 'EM') return 'Em';
-        if (normalized === 'BM') return 'Bm';
-        return normalized;
+        let n = chord.replace(/\s+/g, '');
+        // 'M' sola al final = sufijo menor (era 'm' minúscula antes de toUpperCase)
+        // Aplica a: DM→Dm, AM→Am, C#M→C#m, BBM→Bm, etc.
+        if (/^[A-G][#b]?M$/.test(n)) return n.slice(0, -1) + 'm';
+        return n;
     });
 }
 
@@ -75,9 +76,11 @@ export function detectSongKey(allChords) {
     const firstChord = allChords[0];
     try {
         const chordInfo = Tonal.Chord.get(firstChord);
-        const root = chordInfo.tonic || firstChord.match(/^[A-G][#b]?/i)[0];
-        const isMinor = chordInfo.type.toLowerCase().includes('minor') || 
-                        (firstChord.includes('m') && !firstChord.toLowerCase().includes('maj'));
+        const root = chordInfo.tonic || firstChord.match(/^[A-G][#b]?/)[0];
+        // Fuente primaria: Tonal reconoce el tipo del acorde
+        // Fallback: 'm' minúscula inmediatamente después de la raíz ([A-G] + accidental)
+        const isMinor = chordInfo.type?.toLowerCase().includes('minor') ||
+                        /^[A-G][#b]?m(?!aj)/i.test(firstChord);
         return { root, quality: isMinor ? 'menor' : 'Mayor' };
     } catch (e) { return { root: firstChord, quality: '' }; }
 }

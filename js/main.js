@@ -1,64 +1,129 @@
 import * as ocr from './ocr.js';
 import * as music from './music.js';
 import * as ui from './ui.js';
+import * as template from './template.js';
 
-let songData = []; 
+let songData = [];
 let targetKey = null;
 
 document.addEventListener('DOMContentLoaded', () => {
     ui.initTheme();
+    initTemplateModal();
 });
 
 const btnProcess = document.getElementById('btnProcess');
-const fileInput = document.getElementById('fileInput');
+const fileInput  = document.getElementById('fileInput');
 const statusText = document.getElementById('statusText');
 const loaderWrap = document.getElementById('loaderWrap');
 const btnTranspose = document.getElementById('btnTranspose');
 
+// ─── Modal de plantilla ────────────────────────────────────────────────────────
+
+function initTemplateModal() {
+    const modal    = document.getElementById('templateModal');
+    const btnOpen  = document.getElementById('btnTemplate');
+    const btnClose = document.getElementById('modalClose');
+    if (!modal || !btnOpen) return;
+
+    btnOpen.addEventListener('click', () => {
+        modal.classList.add('open');
+        modal.setAttribute('aria-hidden', 'false');
+    });
+
+    const closeModal = () => {
+        modal.classList.remove('open');
+        modal.setAttribute('aria-hidden', 'true');
+    };
+
+    btnClose?.addEventListener('click', closeModal);
+    modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
+
+    modal.querySelectorAll('.modal-option').forEach(btn => {
+        btn.addEventListener('click', () => {
+            template.downloadTemplate(btn.dataset.format);
+            closeModal();
+        });
+    });
+}
+
+// ─── Selección de archivos ─────────────────────────────────────────────────────
+
 fileInput.onchange = async () => {
-    btnProcess.disabled = fileInput.files.length === 0;
-    const container = document.getElementById('thumbnailContainer');
-    if (!container) return;
-    container.innerHTML = '';
-    for (const file of Array.from(fileInput.files)) {
-        let src;
-        if (file.type === 'application/pdf') {
-            const ab = await file.arrayBuffer();
-            const pdf = await pdfjsLib.getDocument(ab).promise;
-            const page = await pdf.getPage(1);
-            const vp = page.getViewport({ scale: 0.5 });
-            const canvas = document.createElement('canvas');
-            canvas.width = vp.width; canvas.height = vp.height;
-            await page.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise;
-            src = canvas.toDataURL('image/jpeg', 0.7);
-        } else {
-            src = URL.createObjectURL(file);
+    const files      = Array.from(fileInput.files);
+    const mediaFiles = files.filter(f => !template.detectFormat(f.name));
+    const tplFiles   = files.filter(f =>  template.detectFormat(f.name));
+    const container  = document.getElementById('thumbnailContainer');
+
+    if (container) {
+        container.innerHTML = '';
+        // Miniaturas para imágenes/PDFs
+        for (const file of mediaFiles) {
+            let src;
+            if (file.type === 'application/pdf') {
+                const ab  = await file.arrayBuffer();
+                const pdf = await pdfjsLib.getDocument(ab).promise;
+                const page = await pdf.getPage(1);
+                const vp  = page.getViewport({ scale: 0.5 });
+                const canvas = document.createElement('canvas');
+                canvas.width = vp.width; canvas.height = vp.height;
+                await page.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise;
+                src = canvas.toDataURL('image/jpeg', 0.7);
+            } else {
+                src = URL.createObjectURL(file);
+            }
+            const div = document.createElement('div');
+            div.className = 'thumb-item';
+            const img = document.createElement('img');
+            img.src = src;
+            div.appendChild(img);
+            container.appendChild(div);
         }
-        const div = document.createElement('div');
-        div.className = 'thumb-item';
-        const img = document.createElement('img');
-        img.src = src;
-        div.appendChild(img);
-        container.appendChild(div);
+        // Indicador visual para archivos de plantilla
+        for (const file of tplFiles) {
+            const div = document.createElement('div');
+            div.className = 'thumb-item thumb-item--template';
+            div.innerHTML = `<span class="thumb-tpl-label">${template.detectFormat(file.name).toUpperCase()}</span>`;
+            container.appendChild(div);
+        }
     }
+
+    // Habilitar botón para cualquier archivo — el procesamiento ocurre al hacer clic
+    btnProcess.disabled = files.length === 0;
 };
 
 btnProcess.onclick = async () => {
     try {
         loaderWrap.style.display = 'flex';
-        songData = []; 
+        songData = [];
         document.getElementById('detectionResults').innerHTML = "";
         document.getElementById('finalOutput').style.display = 'none';
-        
-        const files = Array.from(fileInput.files);
-        for (let file of files) {
+
+        const files      = Array.from(fileInput.files);
+        const mediaFiles = files.filter(f => !template.detectFormat(f.name));
+        const tplFiles   = files.filter(f =>  template.detectFormat(f.name));
+
+        // Parsear plantillas de texto
+        for (const file of tplFiles) {
+            statusText.textContent = `Importando: ${file.name}`;
+            const fmt    = template.detectFormat(file.name);
+            const text   = await file.text();
+            const parsed = template.parseTemplate(text, fmt, music.extractChordsWithRepetition);
+            songData.push(...parsed);
+        }
+
+        // OCR para imágenes/PDFs
+        for (const file of mediaFiles) {
             statusText.textContent = `Preparando: ${file.name}`;
-            let sources = (file.type === "application/pdf") ? await ocr.pdfToImages(file) : [await toBase64(file)];
-            for (let src of sources) {
+            const sources = (file.type === "application/pdf")
+                ? await ocr.pdfToImages(file)
+                : [await toBase64(file)];
+            for (const src of sources) {
                 const text = await ocr.runOCR(src);
                 processTextToSongData(text);
             }
         }
+
         refreshUI();
     } catch (error) {
         console.error("Error:", error);
@@ -90,6 +155,9 @@ function processTextToSongData(text) {
 }
 
 function refreshUI() {
+    // Omitir secciones sin acordes
+    songData = songData.filter(s => s.chords.length > 0);
+
     const allChords = songData.flatMap(section => section.chords);
     const keyInfo = music.detectSongKey(allChords);
     ui.renderDetectedKey(document.getElementById('keyFloatingBadge'), keyInfo);
@@ -102,7 +170,7 @@ function refreshUI() {
         targetKey = note;
     });
     document.getElementById('toneSelector').style.display = 'block';
-    document.getElementById('editHint').style.display = 'block';
+    document.getElementById('editHint')?.style && (document.getElementById('editHint').style.display = 'block');
 }
 
 btnTranspose.onclick = () => {

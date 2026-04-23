@@ -21,17 +21,19 @@
 
     <main>
         <div class="upload-zone" id="dropZone">
-            <input type="file" id="fileInput" accept="image/*,application/pdf" multiple style="display: none;">
-            
+            <input type="file" id="fileInput" accept="image/*,application/pdf,.txt,.csv,.json" multiple style="display: none;">
+
             <label for="fileInput" class="custom-file-trigger">
                 <span class="upload-icon">⊕</span>
                 <span id="fileInputText">Seleccionar partituras</span>
             </label>
 
             <h3 style="font-size: 1.2rem; margin-top: 1rem; margin-bottom: 5px;">Carga tus archivos</h3>
-            <p style="color: var(--text3); font-size: 0.85rem; margin-bottom: 1rem;">PDF o Imágenes de partituras/cifrados</p>
+            <p style="color: var(--text3); font-size: 0.85rem; margin-bottom: 0.6rem;">PDF, Imágenes o Plantillas (.txt .csv .json)</p>
 
-            <div id="thumbnailContainer" class="thumbnail-container"></div>
+            <button class="btn-template" id="btnTemplate">⬇ Descargar Plantilla</button>
+
+            <div id="thumbnailContainer" class="thumbnail-container" style="margin-top: 0.75rem;"></div>
 
             <button class="btn-action" id="btnProcess" disabled style="margin-top: 1.25rem;">Escanear Canción</button>
         </div>
@@ -55,6 +57,40 @@
             <div id="keyFloatingBadge" class="key-floating-badge"></div>
         </div>
     </main>
+
+    <!-- Modal: selección de formato de plantilla -->
+    <div id="templateModal" class="modal-overlay" aria-hidden="true">
+        <div class="modal-card" role="dialog" aria-labelledby="modalTitle">
+            <div class="modal-header">
+                <span class="modal-title" id="modalTitle">Descargar Plantilla</span>
+                <button class="modal-close" id="modalClose" aria-label="Cerrar">✕</button>
+            </div>
+            <p class="modal-desc">Elige un formato, rellena los acordes por sección y vuelve a importarla seleccionándola con el botón de arriba.</p>
+            <div class="modal-options">
+                <button class="modal-option" data-format="txt">
+                    <span class="option-icon">TXT</span>
+                    <div class="option-text">
+                        <span class="option-name">.txt</span>
+                        <span class="option-desc">Texto plano, editable en cualquier app</span>
+                    </div>
+                </button>
+                <button class="modal-option" data-format="csv">
+                    <span class="option-icon">CSV</span>
+                    <div class="option-text">
+                        <span class="option-name">.csv</span>
+                        <span class="option-desc">Compatible con Excel y Google Sheets</span>
+                    </div>
+                </button>
+                <button class="modal-option" data-format="json">
+                    <span class="option-icon">{}</span>
+                    <div class="option-text">
+                        <span class="option-name">.json</span>
+                        <span class="option-desc">Clave-valor para integraciones</span>
+                    </div>
+                </button>
+            </div>
+        </div>
+    </div>
 
     <div id="floatingControlGroup" class="floating-control-group">
         <div class="control-panel">
