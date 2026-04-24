@@ -71,6 +71,27 @@ export function smartTransposeChord(chord, interval, preferFlats) {
     } catch (e) { return chord; }
 }
 
+const CHROMATIC_MAP = { C:0,'C#':1,Db:1,D:2,'D#':3,Eb:3,E:4,F:5,'F#':6,Gb:6,G:7,'G#':8,Ab:8,A:9,'A#':10,Bb:10,B:11 };
+const DEGREE_NAMES  = ['1','1#','2','2#','3','4','4#','5','5#','6','6#','7'];
+
+export function convertChordToDegree(chord, rootNote) {
+    try {
+        const chordInfo  = Tonal.Chord.get(chord);
+        const chordRoot  = chordInfo.tonic;
+        if (!chordRoot || CHROMATIC_MAP[chordRoot] === undefined || CHROMATIC_MAP[rootNote] === undefined) return chord;
+
+        const semitones    = ((CHROMATIC_MAP[chordRoot] - CHROMATIC_MAP[rootNote]) % 12 + 12) % 12;
+        const degree       = DEGREE_NAMES[semitones];
+        const qualitySuffix = chord.slice(chordRoot.length);
+        return degree + qualitySuffix;
+    } catch (e) { return chord; }
+}
+
+export function convertToDegrees(chords, keyInfo) {
+    if (!keyInfo?.root) return chords;
+    return chords.map(c => convertChordToDegree(c, keyInfo.root));
+}
+
 export function detectSongKey(allChords) {
     if (!allChords || allChords.length === 0) return null;
     const firstChord = allChords[0];

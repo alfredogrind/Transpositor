@@ -348,6 +348,7 @@ main {
     box-shadow: var(--card-shadow); cursor: grab;
     display: flex; align-items: center; justify-content: center;
     overflow: visible;
+    touch-action: none;
 }
 
 /* Icono de tres barras del FAB — anima a × cuando el panel está abierto */
@@ -617,6 +618,51 @@ html[data-chord-size="xl"] { font-size: 20px; }
     transform: scale(1.8);
     opacity: 0;
   }
+}
+
+/* ── Notation Toggle ─────────────────────────────────────────────────────── */
+.notation-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    margin-top: 1.75rem;
+}
+
+.notation-row__label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text2);
+}
+
+.notation-switch {
+    display: flex;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 3px;
+    gap: 2px;
+}
+
+.notation-pill {
+    padding: 6px 18px;
+    border-radius: 16px;
+    border: none;
+    background: transparent;
+    color: var(--text2);
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition);
+    letter-spacing: 0.02em;
+}
+
+.notation-pill.active {
+    background: var(--accent);
+    color: var(--bg);
+    box-shadow: 0 2px 8px var(--accent-glow);
 }
 
 /* Modal de alerta — reutiliza el sistema de diseño del modal original */

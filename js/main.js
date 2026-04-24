@@ -3,13 +3,17 @@ import * as music from './music.js';
 import * as ui from './ui.js';
 import * as template from './template.js';
 
-let songData = [];
-let targetKey = null;
+let songData          = [];
+let targetKey         = null;
+let detectedKey       = null;
+let lastTransposedData = null;
+let notationMode      = 'classic';
 
 document.addEventListener('DOMContentLoaded', () => {
     ui.initTheme();
     initTemplateModal();
     initAlertModal();
+    initNotationToggle();
 });
 
 const btnProcess = document.getElementById('btnProcess');
@@ -100,17 +104,25 @@ function processTextToSongData(text) {
     });
 }
 
-function refreshUI() {
-    songData = songData.filter(s => s.chords.length > 0);
-    const chords = songData.flatMap(s => s.chords);
-    ui.renderDetectedKey(document.getElementById('keyFloatingBadge'), music.detectSongKey(chords));
+function getLabelFn(referenceRoot) {
+    if (notationMode === 'degrees' && referenceRoot) {
+        return c => music.convertChordToDegree(c, referenceRoot);
+    }
+    return c => c;
+}
 
-    // Conexión con el nuevo sistema de reordenamiento
+function refreshUI() {
+    songData    = songData.filter(s => s.chords.length > 0);
+    const chords = songData.flatMap(s => s.chords);
+    detectedKey  = music.detectSongKey(chords);
+    ui.renderDetectedKey(document.getElementById('keyFloatingBadge'), detectedKey);
+
     ui.renderResults(
-        document.getElementById('detectionResults'), 
-        songData, 
+        document.getElementById('detectionResults'),
+        songData,
         (idx, title) => { songData[idx].section = title; },
-        (newOrder) => { songData = newOrder.map(i => songData[i]); }
+        (newOrder) => { songData = newOrder.map(i => songData[i]); },
+        getLabelFn(detectedKey?.root)
     );
 
     ui.renderToneGrid(document.getElementById('gridTones'), (note) => { targetKey = note; });
@@ -125,11 +137,11 @@ btnTranspose.onclick = () => {
     const interval = Tonal.distance(root, targetKey);
     const preferFlats = ['F', 'Bb', 'Eb', 'Ab', 'Db', 'Gb'].includes(targetKey);
 
-    const transposedData = songData.map(item => ({
+    lastTransposedData = songData.map(item => ({
         section: item.section,
         chords: item.chords.map(c => music.smartTransposeChord(c, interval, preferFlats))
     }));
-    ui.renderFinalResults(document.getElementById('outputContainer'), transposedData);
+    ui.renderFinalResults(document.getElementById('outputContainer'), lastTransposedData, getLabelFn(targetKey));
     document.getElementById('finalOutput').style.display = 'block';
 };
 
@@ -156,6 +168,29 @@ function initAlertModal() {
             modal.classList.remove('open');
             modal.setAttribute('aria-hidden', 'true');
         }
+    });
+}
+
+function initNotationToggle() {
+    const pills = document.querySelectorAll('.notation-pill');
+    pills.forEach(pill => {
+        pill.addEventListener('click', () => {
+            notationMode = pill.dataset.mode;
+            pills.forEach(p => p.classList.toggle('active', p.dataset.mode === notationMode));
+
+            if (songData.length) {
+                ui.renderResults(
+                    document.getElementById('detectionResults'),
+                    songData,
+                    (idx, title) => { songData[idx].section = title; },
+                    (newOrder) => { songData = newOrder.map(i => songData[i]); },
+                    getLabelFn(detectedKey?.root)
+                );
+            }
+            if (lastTransposedData) {
+                ui.renderFinalResults(document.getElementById('outputContainer'), lastTransposedData, getLabelFn(targetKey));
+            }
+        });
     });
 }
 

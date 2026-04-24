@@ -48,7 +48,16 @@
         <div class="tone-selector" id="toneSelector" style="display:none;">
             <p class="section-title" style="margin-bottom: 1.5rem; text-align: center;">¿A qué tono quieres transportar?</p>
             <div id="gridTones" class="grid-tones"></div>
-            <button class="btn-action" id="btnTranspose" style="margin-top: 2rem;">Transportar ahora</button>
+
+            <div class="notation-row">
+                <span class="notation-row__label">Modo de notación</span>
+                <div class="notation-switch">
+                    <button class="notation-pill active" data-mode="classic">Clásica</button>
+                    <button class="notation-pill" data-mode="degrees">Grados</button>
+                </div>
+            </div>
+
+            <button class="btn-action" id="btnTranspose" style="margin-top: 1.5rem;">Transportar ahora</button>
         </div>
 
         <div id="finalOutput" style="display:none; width: 100%;">

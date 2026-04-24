@@ -1,7 +1,7 @@
 /**
  * Renderiza secciones con Grid Dinámico y Drag & Drop interactivo
  */
-export function renderResults(container, data, onUpdate, onReorder) {
+export function renderResults(container, data, onUpdate, onReorder, labelFn = c => c) {
     container.innerHTML = `<h3 class="revision-title">Revisión de secciones (Arrastra para ordenar):</h3>`;
 
     data.forEach((item, index) => {
@@ -16,7 +16,7 @@ export function renderResults(container, data, onUpdate, onReorder) {
                 <button class="btn-edit-icon" title="Editar nombre" style="pointer-events:auto;">✎</button>
             </div>
             <div class="chord-grid">
-                ${item.chords.map(c => `<span class="chord-pill">${c}</span>`).join('')}
+                ${item.chords.map(c => `<span class="chord-pill">${labelFn(c)}</span>`).join('')}
             </div>
         `;
 
@@ -78,14 +78,14 @@ export function showScanner(container, statusTextEl, message) {
 /**
  * Renderiza resultado final transpuesto (sin capacidad de arrastre)
  */
-export function renderFinalResults(container, data) {
+export function renderFinalResults(container, data, labelFn = c => c) {
     container.innerHTML = "";
     data.forEach((item) => {
         const card = document.createElement('div');
         card.className = 'section-box';
         card.innerHTML = `
             <div class="section-header"><div class="section-title">${item.section}</div></div>
-            <div class="chord-grid">${item.chords.map(c => `<span class="chord-result">${c}</span>`).join('')}</div>
+            <div class="chord-grid">${item.chords.map(c => `<span class="chord-result">${labelFn(c)}</span>`).join('')}</div>
         `;
         container.appendChild(card);
     });
@@ -290,6 +290,7 @@ export function initTheme() {
 
         // ── Soporte táctil: el FAB debe poder arrastrarse en móvil ──────────
         controlFab.addEventListener('touchstart', (e) => {
+            e.preventDefault(); // impide scroll desde el inicio del gesto
             const touch = e.touches[0];
             const rect = floatingGroup.getBoundingClientRect();
             dragState.startBottom = window.innerHeight - rect.bottom;
