@@ -9,6 +9,7 @@ let targetKey = null;
 document.addEventListener('DOMContentLoaded', () => {
     ui.initTheme();
     initTemplateModal();
+    initAlertModal();
 });
 
 const btnProcess = document.getElementById('btnProcess');
@@ -117,7 +118,8 @@ function refreshUI() {
 }
 
 btnTranspose.onclick = () => {
-    if (!targetKey || !songData.length) return alert("Selecciona un tono.");
+    if (!songData.length) return showAlert('Primero carga y escanea una partitura.');
+    if (!targetKey) return showAlert('Selecciona un tono de destino.');
     const first = songData[0].chords[0];
     const root = Tonal.Chord.get(first).tonic || first.match(/^[A-G][#b]?/)[0];
     const interval = Tonal.distance(root, targetKey);
@@ -134,6 +136,28 @@ btnTranspose.onclick = () => {
 const toBase64 = file => new Promise(res => {
     const r = new FileReader(); r.onload = e => res(e.target.result); r.readAsDataURL(file);
 });
+
+function showAlert(msg) {
+    const modal = document.getElementById('alertModal');
+    document.getElementById('alertModalText').textContent = msg;
+    modal.setAttribute('aria-hidden', 'false');
+    modal.classList.add('open');
+}
+
+function initAlertModal() {
+    const modal = document.getElementById('alertModal');
+    if (!modal) return;
+    document.getElementById('closeAlertBtn').onclick = () => {
+        modal.classList.remove('open');
+        modal.setAttribute('aria-hidden', 'true');
+    };
+    modal.addEventListener('click', e => {
+        if (e.target === modal) {
+            modal.classList.remove('open');
+            modal.setAttribute('aria-hidden', 'true');
+        }
+    });
+}
 
 function initTemplateModal() {
     const modal = document.getElementById('templateModal');

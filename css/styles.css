@@ -589,3 +589,52 @@ html[data-chord-size="xl"] { font-size: 20px; }
     }
     .f-key-value { font-size: 1.3rem; }
 }
+
+/* Efecto de Onda Expansiva (Ripple Wave) - RESTAURADO */
+.control-fab {
+  position: relative;
+}
+
+.control-fab::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-radius: 50%;
+  pointer-events: none;
+  animation: wave-ripple 3s infinite ease-out;
+}
+
+@keyframes wave-ripple {
+  0% {
+    transform: scale(1);
+    opacity: 0.6;
+  }
+  100% {
+    transform: scale(1.8);
+    opacity: 0;
+  }
+}
+
+/* Modal de alerta — reutiliza el sistema de diseño del modal original */
+.alert-modal-card { text-align: center; }
+
+.alert-icon {
+    width: 48px;
+    height: 48px;
+    background: var(--accent);
+    color: var(--bg);
+    font-size: 1.4rem;
+    font-weight: 700;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0.25rem auto 1.25rem;
+    box-shadow: 0 8px 20px var(--accent-glow);
+}
+
+#closeAlertBtn { margin-top: 0.25rem; }
