@@ -17,38 +17,7 @@ const statusText = document.getElementById('statusText');
 const loaderWrap = document.getElementById('loaderWrap');
 const btnTranspose = document.getElementById('btnTranspose');
 
-// ─── Modal de plantilla ────────────────────────────────────────────────────────
-
-function initTemplateModal() {
-    const modal    = document.getElementById('templateModal');
-    const btnOpen  = document.getElementById('btnTemplate');
-    const btnClose = document.getElementById('modalClose');
-    if (!modal || !btnOpen) return;
-
-    btnOpen.addEventListener('click', () => {
-        modal.classList.add('open');
-        modal.setAttribute('aria-hidden', 'false');
-    });
-
-    const closeModal = () => {
-        modal.classList.remove('open');
-        modal.setAttribute('aria-hidden', 'true');
-    };
-
-    btnClose?.addEventListener('click', closeModal);
-    modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
-    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
-
-    modal.querySelectorAll('.modal-option').forEach(btn => {
-        btn.addEventListener('click', () => {
-            template.downloadTemplate(btn.dataset.format);
-            closeModal();
-        });
-    });
-}
-
-// ─── Selección de archivos ─────────────────────────────────────────────────────
-
+// --- Selección de archivos (Mantenida Original con PDF/Miniaturas) ---
 fileInput.onchange = async () => {
     const files      = Array.from(fileInput.files);
     const mediaFiles = files.filter(f => !template.detectFormat(f.name));
@@ -57,7 +26,6 @@ fileInput.onchange = async () => {
 
     if (container) {
         container.innerHTML = '';
-        // Miniaturas para imágenes/PDFs
         for (const file of mediaFiles) {
             let src;
             if (file.type === 'application/pdf') {
@@ -74,12 +42,9 @@ fileInput.onchange = async () => {
             }
             const div = document.createElement('div');
             div.className = 'thumb-item';
-            const img = document.createElement('img');
-            img.src = src;
-            div.appendChild(img);
+            div.innerHTML = `<img src="${src}">`;
             container.appendChild(div);
         }
-        // Indicador visual para archivos de plantilla
         for (const file of tplFiles) {
             const div = document.createElement('div');
             div.className = 'thumb-item thumb-item--template';
@@ -87,65 +52,45 @@ fileInput.onchange = async () => {
             container.appendChild(div);
         }
     }
-
-    // Habilitar botón para cualquier archivo — el procesamiento ocurre al hacer clic
     btnProcess.disabled = files.length === 0;
 };
 
+// --- Procesamiento de Escaneo (Integrado con Animación) ---
 btnProcess.onclick = async () => {
     try {
-        loaderWrap.style.display = 'flex';
+        ui.showScanner(loaderWrap, statusText, "Escaneando canción...");
         songData = [];
         document.getElementById('detectionResults').innerHTML = "";
         document.getElementById('finalOutput').style.display = 'none';
 
-        const files      = Array.from(fileInput.files);
-        const mediaFiles = files.filter(f => !template.detectFormat(f.name));
-        const tplFiles   = files.filter(f =>  template.detectFormat(f.name));
-
-        // Parsear plantillas de texto
-        for (const file of tplFiles) {
-            statusText.textContent = `Importando: ${file.name}`;
-            const fmt    = template.detectFormat(file.name);
-            const text   = await file.text();
-            const parsed = template.parseTemplate(text, fmt, music.extractChordsWithRepetition);
-            songData.push(...parsed);
-        }
-
-        // OCR para imágenes/PDFs
-        for (const file of mediaFiles) {
-            statusText.textContent = `Preparando: ${file.name}`;
-            const sources = (file.type === "application/pdf")
-                ? await ocr.pdfToImages(file)
-                : [await toBase64(file)];
-            for (const src of sources) {
-                const text = await ocr.runOCR(src);
-                processTextToSongData(text);
+        const files = Array.from(fileInput.files);
+        for (const file of files) {
+            const fmt = template.detectFormat(file.name);
+            if (fmt) {
+                const text = await file.text();
+                songData.push(...template.parseTemplate(text, fmt, music.extractChordsWithRepetition));
+            } else {
+                const sources = (file.type === "application/pdf") ? await ocr.pdfToImages(file) : [await toBase64(file)];
+                for (const src of sources) {
+                    const text = await ocr.runOCR(src);
+                    processTextToSongData(text);
+                }
             }
         }
-
         refreshUI();
-    } catch (error) {
-        console.error("Error:", error);
-    } finally {
-        loaderWrap.style.display = 'none';
-    }
+    } catch (error) { console.error("Error:", error); }
+    finally { loaderWrap.style.display = 'none'; }
 };
 
 function processTextToSongData(text) {
-    const lines = text.split('\n');
-    lines.forEach(line => {
-        let cleanLine = line.trim();
-        if (!cleanLine) return;
-        if (cleanLine.startsWith('#')) cleanLine = cleanLine.substring(1).trim();
-
-        const upperLine = cleanLine.toUpperCase();
-        const foundSection = music.SECTION_KEYWORDS.find(k => upperLine.includes(k));
-        
-        if (foundSection) {
-            songData.push({ section: upperLine, chords: [] });
-        } else {
-            const chords = music.extractChordsWithRepetition(cleanLine);
+    text.split('\n').forEach(line => {
+        let clean = line.trim();
+        if (!clean) return;
+        const upperLine = clean.toUpperCase();
+        const found = music.SECTION_KEYWORDS.find(k => upperLine.includes(k));
+        if (found) songData.push({ section: upperLine, chords: [] });
+        else {
+            const chords = music.extractChordsWithRepetition(clean);
             if (chords.length > 0) {
                 if (songData.length === 0) songData.push({ section: "INICIO", chords: [] });
                 songData[songData.length - 1].chords.push(...chords);
@@ -155,45 +100,49 @@ function processTextToSongData(text) {
 }
 
 function refreshUI() {
-    // Omitir secciones sin acordes
     songData = songData.filter(s => s.chords.length > 0);
+    const chords = songData.flatMap(s => s.chords);
+    ui.renderDetectedKey(document.getElementById('keyFloatingBadge'), music.detectSongKey(chords));
 
-    const allChords = songData.flatMap(section => section.chords);
-    const keyInfo = music.detectSongKey(allChords);
-    ui.renderDetectedKey(document.getElementById('keyFloatingBadge'), keyInfo);
-
-    ui.renderResults(document.getElementById('detectionResults'), songData, 
+    // Conexión con el nuevo sistema de reordenamiento
+    ui.renderResults(
+        document.getElementById('detectionResults'), 
+        songData, 
         (idx, title) => { songData[idx].section = title; },
-        (idx) => { songData.splice(idx, 1); refreshUI(); }
+        (newOrder) => { songData = newOrder.map(i => songData[i]); }
     );
-    ui.renderToneGrid(document.getElementById('gridTones'), (note) => {
-        targetKey = note;
-    });
+
+    ui.renderToneGrid(document.getElementById('gridTones'), (note) => { targetKey = note; });
     document.getElementById('toneSelector').style.display = 'block';
-    document.getElementById('editHint')?.style && (document.getElementById('editHint').style.display = 'block');
 }
 
 btnTranspose.onclick = () => {
-    if (!targetKey) return alert("Selecciona un tono.");
-    if (!songData.length || !songData[0].chords.length) return alert("No hay acordes.");
-
-    const firstChord = songData[0].chords[0];
-    const originalKeyRoot = Tonal.Chord.get(firstChord).tonic || firstChord.match(/^[A-G][#b]?/)[0];
-
-    const distFn = (Tonal.Note && Tonal.Note.distance) ? Tonal.Note.distance : Tonal.distance;
-    const interval = distFn(originalKeyRoot, targetKey);
-    const container = document.getElementById('outputContainer');
+    if (!targetKey || !songData.length) return alert("Selecciona un tono.");
+    const first = songData[0].chords[0];
+    const root = Tonal.Chord.get(first).tonic || first.match(/^[A-G][#b]?/)[0];
+    const interval = Tonal.distance(root, targetKey);
     const preferFlats = ['F', 'Bb', 'Eb', 'Ab', 'Db', 'Gb'].includes(targetKey);
+
     const transposedData = songData.map(item => ({
         section: item.section,
-        chords: item.chords.map(chord => music.smartTransposeChord(chord, interval, preferFlats))
+        chords: item.chords.map(c => music.smartTransposeChord(c, interval, preferFlats))
     }));
-    ui.renderFinalResults(container, transposedData);
-
+    ui.renderFinalResults(document.getElementById('outputContainer'), transposedData);
     document.getElementById('finalOutput').style.display = 'block';
-    window.scrollTo({ top: document.getElementById('finalOutput').offsetTop - 50, behavior: 'smooth' });
 };
 
 const toBase64 = file => new Promise(res => {
     const r = new FileReader(); r.onload = e => res(e.target.result); r.readAsDataURL(file);
 });
+
+function initTemplateModal() {
+    const modal = document.getElementById('templateModal');
+    const btnOpen = document.getElementById('btnTemplate');
+    const btnClose = document.getElementById('modalClose');
+    if (!modal || !btnOpen) return;
+    btnOpen.onclick = () => modal.classList.add('open');
+    btnClose.onclick = () => modal.classList.remove('open');
+    modal.querySelectorAll('.modal-option').forEach(btn => {
+        btn.onclick = () => { template.downloadTemplate(btn.dataset.format); modal.classList.remove('open'); };
+    });
+}

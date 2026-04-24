@@ -1,344 +1,349 @@
 /**
- * Renderiza los bloques de cada sección para revisión (Escaneo)
- * El botón del lápiz ahora activa la edición del nombre de la sección.
+ * Renderiza secciones con Grid Dinámico y Drag & Drop interactivo
  */
-export function renderResults(container, data, onUpdate) {
-    container.innerHTML = `<h3 class="revision-title">Revisión de secciones:</h3>`;
-    
+export function renderResults(container, data, onUpdate, onReorder) {
+    container.innerHTML = `<h3 class="revision-title">Revisión de secciones (Arrastra para ordenar):</h3>`;
+
     data.forEach((item, index) => {
         const div = document.createElement('div');
         div.className = 'section-box';
+        div.draggable = true;
+        div.dataset.index = index;
+
         div.innerHTML = `
-            <div class="section-header">
-                <div class="section-title" id="title-${index}" contenteditable="true">${item.section}</div>
-                <button class="btn-edit-icon" title="Editar nombre de sección">✎</button>
+            <div class="section-header" style="pointer-events:none;">
+                <div class="section-title" id="title-${index}" contenteditable="true" style="pointer-events:auto;">${item.section}</div>
+                <button class="btn-edit-icon" title="Editar nombre" style="pointer-events:auto;">✎</button>
             </div>
             <div class="chord-grid">
                 ${item.chords.map(c => `<span class="chord-pill">${c}</span>`).join('')}
             </div>
         `;
-        
-        const titleElement = div.querySelector('.section-title');
-        titleElement.onblur = (e) => onUpdate(index, e.target.textContent);
 
-        // Nueva lógica: El botón pone el foco en el texto para editar
-        div.querySelector('.btn-edit-icon').onclick = () => {
-            titleElement.focus();
-            // Opcional: coloca el cursor al final del texto
-            const range = document.createRange();
-            const sel = window.getSelection();
-            range.selectNodeContents(titleElement);
-            range.collapse(false);
-            sel.removeAllRanges();
-            sel.addRange(range);
-        };
+        div.addEventListener('dragstart', (e) => {
+            requestAnimationFrame(() => div.classList.add('dragging'));
+            e.dataTransfer.effectAllowed = 'move';
+        });
+
+        div.addEventListener('dragend', () => {
+            div.classList.remove('dragging');
+            const boxes = Array.from(container.querySelectorAll('.section-box'));
+            const newOrder = boxes.map(el => parseInt(el.dataset.index));
+            onReorder(newOrder);
+            boxes.forEach((el, i) => {
+                el.dataset.index = i;
+                const titleEl = el.querySelector('.section-title');
+                if (titleEl) titleEl.onblur = (e2) => onUpdate(i, e2.target.textContent);
+            });
+        });
+
+        div.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            const draggingItem = container.querySelector('.dragging');
+            if (!draggingItem || draggingItem === div) return;
+            const box = div.getBoundingClientRect();
+            const offset = e.clientY - box.top - box.height / 2;
+            if (offset < 0) container.insertBefore(draggingItem, div);
+            else container.insertBefore(draggingItem, div.nextSibling);
+        });
+
+        const titleElement = div.querySelector('.section-title');
+        titleElement.onblur = (e) => onUpdate(parseInt(div.dataset.index), e.target.textContent);
+        div.querySelector('.btn-edit-icon').onclick = () => titleElement.focus();
 
         container.appendChild(div);
     });
 }
 
 /**
- * Renderiza el resultado final — cada sección en su propia tarjeta
+ * Muestra el escáner láser dinámico en lugar del spinner
+ */
+export function showScanner(container, statusTextEl, message) {
+    container.style.display = 'flex';
+    container.innerHTML = `
+        <div class="scanner-container">
+            <div class="scanner-line"></div>
+            <div style="padding:20px; opacity:0.15;">
+                <div style="height:10px; background:var(--text3); width:80%; margin-bottom:10px; border-radius:5px;"></div>
+                <div style="display:flex; gap:10px;">
+                    <div style="width:40px; height:20px; background:var(--accent); border-radius:5px;"></div>
+                    <div style="width:40px; height:20px; background:var(--accent); border-radius:5px;"></div>
+                </div>
+            </div>
+        </div>
+        <p style="color: var(--text2); font-weight: 500; margin-top: 0.75rem;">${message}</p>
+    `;
+}
+
+/**
+ * Renderiza resultado final transpuesto (sin capacidad de arrastre)
  */
 export function renderFinalResults(container, data) {
     container.innerHTML = "";
-    
     data.forEach((item) => {
         const card = document.createElement('div');
         card.className = 'section-box';
         card.innerHTML = `
-            <div class="section-header">
-                <div class="section-title">${item.section}</div>
-            </div>
-            <div class="chord-grid">
-                ${item.chords.map(c => `<span class="chord-result">${c}</span>`).join('')}
-            </div>
+            <div class="section-header"><div class="section-title">${item.section}</div></div>
+            <div class="chord-grid">${item.chords.map(c => `<span class="chord-result">${c}</span>`).join('')}</div>
         `;
         container.appendChild(card);
     });
 }
 
-/**
- * Pinta la tonalidad detectada en el badge flotante (Centro de Control)
- * Muestra solo el Tono (Raiz) sin calidad mayor o menor.
- */
 export function renderDetectedKey(container, keyInfo) {
-    if (!container) return;
-    
-    if (!keyInfo) {
-        container.classList.remove('visible');
-        return;
-    }
-    
+    if (!container || !keyInfo) { container?.classList.remove('visible'); return; }
     const keyDisplay = keyInfo.quality === 'menor' ? keyInfo.root + 'm' : keyInfo.root;
-    container.innerHTML = `
-        <span class="f-key-label">Raíz</span>
-        <span class="f-key-value">${keyDisplay}</span>
-    `;
-
+    container.innerHTML = `<span class="f-key-label">Raíz</span><span class="f-key-value">${keyDisplay}</span>`;
     container.classList.add('visible');
 }
 
-/**
- * Genera la cuadrícula de botones para elegir el tono
- */
 export function renderToneGrid(container, onSelect) {
     const notes = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
     container.innerHTML = "";
     notes.forEach(note => {
         const btn = document.createElement('button');
-        btn.className = 'btn-tone';
-        btn.textContent = note;
+        btn.className = 'btn-tone'; btn.textContent = note;
         btn.onclick = () => {
             document.querySelectorAll('.btn-tone').forEach(b => b.classList.remove('selected'));
-            btn.classList.add('selected');
-            onSelect(note);
+            btn.classList.add('selected'); onSelect(note);
         };
         container.appendChild(btn);
     });
 }
 
-const PALETTES = [
-    { name: 'Starlight',     swatch: '#c8a96e' },
-    { name: 'Artic', swatch: 'rgb(96, 165, 250)' },
-    { name: 'Ambar Solar',      swatch: 'rgb(251, 146, 60)' },
-    { name: 'Menta Zen',      swatch: 'rgb(74, 222, 128)' },
-];
+/**
+ * Posiciona un picker a la izquierda del botón toggle, clampeado al viewport.
+ * Los pickers son position:fixed, así que sus dimensiones son siempre accesibles.
+ */
+function positionPicker(pickerEl, toggleEl) {
+    const PAD = 12;
+    const pw = pickerEl.offsetWidth  || 200;
+    const ph = pickerEl.offsetHeight || 130;
+    const tRect = toggleEl.getBoundingClientRect();
 
-function applyPalette(index) {
-    document.body.setAttribute('data-palette', String(index));
-    document.querySelectorAll('.palette-option').forEach((opt, i) => {
-        opt.classList.toggle('active', i === index);
-    });
+    // Intentar a la derecha primero; si no cabe, a la izquierda
+    // (el FAB puede estar en cualquier lado de la pantalla tras arrastrarlo)
+    let left = tRect.right + PAD;
+    if (left + pw > window.innerWidth - PAD) left = tRect.left - pw - PAD;
+
+    let top = tRect.top + tRect.height / 2 - ph / 2;
+
+    left = Math.max(PAD, Math.min(left, window.innerWidth  - pw - PAD));
+    top  = Math.max(PAD, Math.min(top,  window.innerHeight - ph - PAD));
+
+    pickerEl.style.left = left + 'px';
+    pickerEl.style.top  = top  + 'px';
 }
 
-const SIZES = [
-    { value: 'xs', fontSize: '0.7rem'  },
-    { value: 'sm', fontSize: '0.85rem' },
-    { value: 'md', fontSize: '1rem'    },
-    { value: 'lg', fontSize: '1.25rem' },
-    { value: 'xl', fontSize: '1.55rem' },
-];
-
-function applyChordSize(value) {
-    document.documentElement.setAttribute('data-chord-size', value);
-    document.querySelectorAll('.a11y-size-btn').forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.size === value);
-    });
-}
-
+/**
+ * LÓGICA DE TEMAS, ACCESIBILIDAD Y FAB COMPLETA
+ */
 export function initTheme() {
-    const body = document.body;
+    const body        = document.body;
     const themeToggle  = document.getElementById('themeToggle');
     const paletteToggle = document.getElementById('paletteToggle');
     const palettePicker = document.getElementById('palettePicker');
     const a11yToggle   = document.getElementById('a11yToggle');
     const a11yPicker   = document.getElementById('a11yPicker');
 
+    // Restaurar tema
     if (localStorage.getItem('theme') === 'light') body.classList.add('light-mode');
 
-    if (palettePicker) document.body.appendChild(palettePicker);
-    if (a11yPicker)    document.body.appendChild(a11yPicker);
-    const keyBadge = document.getElementById('keyFloatingBadge');
-    if (keyBadge) document.body.appendChild(keyBadge);
+    // Restaurar tamaño de texto guardado
+    const savedSize = localStorage.getItem('chordSize') || '';
+    if (savedSize) document.documentElement.setAttribute('data-chord-size', savedSize);
 
-    if (palettePicker) {
-        PALETTES.forEach((pal, i) => {
-            const opt = document.createElement('div');
-            opt.className = 'palette-option';
-            opt.innerHTML = `
-                <span class="pal-swatch" style="background:${pal.swatch}"></span>
-                <span class="pal-name">${pal.name}</span>
-            `;
-            opt.onclick = () => {
-                applyPalette(i);
-                localStorage.setItem('palette', String(i));
-                palettePicker.classList.remove('open');
-            };
-            palettePicker.appendChild(opt);
-        });
-    }
-    applyPalette(parseInt(localStorage.getItem('palette') || '0', 10));
-
-    if (a11yPicker) {
-        SIZES.forEach(({ value, fontSize }) => {
-            const btn = document.createElement('button');
-            btn.className = 'a11y-size-btn';
-            btn.textContent = 'A';
-            btn.style.fontSize = fontSize;
-            btn.dataset.size = value;
-            btn.onclick = () => {
-                applyChordSize(value);
-                localStorage.setItem('chordSize', value);
-                a11yPicker.classList.remove('open');
-            };
-            a11yPicker.appendChild(btn);
-        });
-    }
-    applyChordSize(localStorage.getItem('chordSize') || 'md');
-
-    if (themeToggle) {
-        themeToggle.onclick = () => {
-            body.classList.toggle('light-mode');
-            localStorage.setItem('theme', body.classList.contains('light-mode') ? 'light' : 'dark');
+    // ── Paletas ──────────────────────────────────────────────────────────────
+    const PALETTES = [
+        { name: 'Starlight',   swatch: '#c8a96e' },
+        { name: 'Artic',       swatch: 'rgb(96, 165, 250)' },
+        { name: 'Ambar Solar', swatch: 'rgb(251, 146, 60)' },
+        { name: 'Menta Zen',   swatch: 'rgb(74, 222, 128)' },
+    ];
+    PALETTES.forEach((pal, i) => {
+        const opt = document.createElement('div');
+        opt.className = 'palette-option';
+        opt.innerHTML = `<span class="pal-swatch" style="background:${pal.swatch}"></span><span class="pal-name">${pal.name}</span>`;
+        opt.onclick = () => {
+            body.setAttribute('data-palette', i);
+            localStorage.setItem('palette', i);
+            palettePicker?.classList.remove('open');
         };
+        palettePicker?.appendChild(opt);
+    });
+    body.setAttribute('data-palette', localStorage.getItem('palette') || '0');
+
+    // Sacar el palettePicker del control-panel por la misma razón que a11yPicker
+    if (palettePicker) document.body.appendChild(palettePicker);
+
+    // ── Picker de accesibilidad (tamaños de texto) ───────────────────────────
+    if (a11yPicker) {
+        const A11Y_SIZES = [
+            { label: 'a',    size: 'xs', title: 'Extra pequeño (12px)' },
+            { label: 'A',    size: 'sm', title: 'Pequeño (14px)' },
+            { label: 'Aa',   size: '',   title: 'Normal (16px)' },
+            { label: 'A⁺',   size: 'lg', title: 'Grande (18px)' },
+            { label: 'A⁺⁺',  size: 'xl', title: 'Extra grande (20px)' },
+        ];
+
+        const lbl = document.createElement('span');
+        lbl.className = 'a11y-label';
+        lbl.textContent = 'Tamaño de texto';
+        a11yPicker.appendChild(lbl);
+
+        const row = document.createElement('div');
+        row.className = 'a11y-sizes';
+
+        A11Y_SIZES.forEach(({ label, size, title }) => {
+            const btn = document.createElement('button');
+            btn.className = 'a11y-size-btn' + (savedSize === size ? ' selected' : '');
+            btn.textContent = label;
+            btn.title = title;
+            btn.onclick = () => {
+                if (size) document.documentElement.setAttribute('data-chord-size', size);
+                else      document.documentElement.removeAttribute('data-chord-size');
+                localStorage.setItem('chordSize', size);
+                row.querySelectorAll('.a11y-size-btn').forEach(b => b.classList.remove('selected'));
+                btn.classList.add('selected');
+            };
+            row.appendChild(btn);
+        });
+        a11yPicker.appendChild(row);
+
+        // Sacar el picker del control-panel (que tiene transform) para que
+        // position:fixed sea relativo al viewport y no al panel transformado
+        document.body.appendChild(a11yPicker);
     }
 
-    const floatingGroup = document.getElementById('floatingControlGroup');
-    const controlFab    = document.getElementById('controlFab');
-    const dragState = { active: false, hasMoved: false, startX: 0, startY: 0, startLeft: 0, startTop: 0 };
+    // ── Handlers de los toggles del panel ────────────────────────────────────
 
-    document.addEventListener('click', (e) => {
+    // Tema claro/oscuro
+    themeToggle?.addEventListener('click', () => {
+        body.classList.toggle('light-mode');
+        localStorage.setItem('theme', body.classList.contains('light-mode') ? 'light' : 'dark');
         palettePicker?.classList.remove('open');
         a11yPicker?.classList.remove('open');
-        if (floatingGroup && !floatingGroup.contains(e.target)) {
-            floatingGroup.classList.remove('open');
+    });
+
+    // Paleta de colores
+    paletteToggle?.addEventListener('click', () => {
+        const isOpen = palettePicker?.classList.contains('open');
+        a11yPicker?.classList.remove('open');
+        if (palettePicker) {
+            if (!isOpen) { positionPicker(palettePicker, paletteToggle); palettePicker.classList.add('open'); }
+            else          { palettePicker.classList.remove('open'); }
         }
     });
 
-    // Guarda el valor de `bottom` antes de cambiar a anclaje por `top` al abrir hacia abajo
-    let savedBottomBeforeOpenDown = null;
+    // Accesibilidad
+    a11yToggle?.addEventListener('click', () => {
+        const isOpen = a11yPicker?.classList.contains('open');
+        palettePicker?.classList.remove('open');
+        if (a11yPicker) {
+            if (!isOpen) { positionPicker(a11yPicker, a11yToggle); a11yPicker.classList.add('open'); }
+            else          { a11yPicker.classList.remove('open'); }
+        }
+    });
+
+    // Cerrar pickers al hacer clic fuera de ellos
+    document.addEventListener('click', (e) => {
+        if (a11yPicker && !a11yPicker.contains(e.target) && !a11yToggle?.contains(e.target)) {
+            a11yPicker.classList.remove('open');
+        }
+        if (palettePicker && !palettePicker.contains(e.target) && !paletteToggle?.contains(e.target)) {
+            palettePicker.classList.remove('open');
+        }
+    });
+
+    // ── Lógica de Arrastre del Botón FAB (Mantenida Original) ────────────────
+    const floatingGroup = document.getElementById('floatingControlGroup');
+    const controlFab    = document.getElementById('controlFab');
+    const dragState     = { active: false, hasMoved: false, startX: 0, startY: 0, startBottom: 0, startRight: 0 };
+    const PAD = 16;
 
     if (controlFab) {
-        controlFab.addEventListener('click', (e) => {
-            e.stopPropagation();
-            if (dragState.hasMoved) return;
-
+        controlFab.addEventListener('mousedown', (e) => {
             const rect = floatingGroup.getBoundingClientRect();
-            const isUpperHalf = rect.bottom < window.innerHeight / 2;
-            floatingGroup.classList.toggle('open-down', isUpperHalf);
+            dragState.startBottom = window.innerHeight - rect.bottom;
+            dragState.startRight  = window.innerWidth  - rect.right;
+            dragState.active = true; dragState.hasMoved = false;
+            dragState.startX = e.clientX; dragState.startY = e.clientY;
+        });
 
-            const isOpen = floatingGroup.classList.toggle('open');
+        document.addEventListener('mousemove', (e) => {
+            if (!dragState.active) return;
+            const dx = e.clientX - dragState.startX;
+            const dy = e.clientY - dragState.startY;
+            if (Math.abs(dx) > 3 || Math.abs(dy) > 3) dragState.hasMoved = true;
+            floatingGroup.style.bottom = Math.max(PAD, Math.min(dragState.startBottom - dy, window.innerHeight - 60 - PAD)) + 'px';
+            floatingGroup.style.right  = Math.max(PAD, Math.min(dragState.startRight  - dx, window.innerWidth  - 60 - PAD)) + 'px';
+        });
 
-            if (isOpen && isUpperHalf) {
-                // Al abrir hacia abajo: anclar por `top` para que el panel crezca
-                // hacia abajo sin salirse por arriba del viewport
-                savedBottomBeforeOpenDown = window.innerHeight - rect.bottom;
-                floatingGroup.style.top    = rect.top + 'px';
-                floatingGroup.style.bottom = 'auto';
-            } else if (!isOpen) {
-                palettePicker?.classList.remove('open');
-                a11yPicker?.classList.remove('open');
-                // Al cerrar: restaurar anclaje por `bottom` (usado por el drag)
-                if (savedBottomBeforeOpenDown !== null) {
-                    floatingGroup.style.bottom = savedBottomBeforeOpenDown + 'px';
-                    floatingGroup.style.top    = 'auto';
-                    savedBottomBeforeOpenDown  = null;
-                }
+        document.addEventListener('mouseup', () => {
+            if (!dragState.active) return;
+            dragState.active = false;
+            if (dragState.hasMoved) localStorage.setItem('controlPos', JSON.stringify({ bottom: floatingGroup.style.bottom, right: floatingGroup.style.right }));
+        });
+
+        controlFab.onclick = () => { if (!dragState.hasMoved) floatingGroup.classList.toggle('open'); };
+
+        // ── Soporte táctil: el FAB debe poder arrastrarse en móvil ──────────
+        controlFab.addEventListener('touchstart', (e) => {
+            const touch = e.touches[0];
+            const rect = floatingGroup.getBoundingClientRect();
+            dragState.startBottom = window.innerHeight - rect.bottom;
+            dragState.startRight  = window.innerWidth  - rect.right;
+            dragState.active = true; dragState.hasMoved = false;
+            dragState.startX = touch.clientX; dragState.startY = touch.clientY;
+        }, { passive: false });
+
+        document.addEventListener('touchmove', (e) => {
+            if (!dragState.active) return;
+            e.preventDefault(); // evita scroll de página mientras se arrastra el FAB
+            const touch = e.touches[0];
+            const dx = touch.clientX - dragState.startX;
+            const dy = touch.clientY - dragState.startY;
+            if (Math.abs(dx) > 3 || Math.abs(dy) > 3) dragState.hasMoved = true;
+            floatingGroup.style.bottom = Math.max(PAD, Math.min(dragState.startBottom - dy, window.innerHeight - 60 - PAD)) + 'px';
+            floatingGroup.style.right  = Math.max(PAD, Math.min(dragState.startRight  - dx, window.innerWidth  - 60 - PAD)) + 'px';
+        }, { passive: false });
+
+        document.addEventListener('touchend', (e) => {
+            if (!dragState.active) return;
+            const wasMoved = dragState.hasMoved;
+            dragState.active = false;
+            if (wasMoved) {
+                localStorage.setItem('controlPos', JSON.stringify({ bottom: floatingGroup.style.bottom, right: floatingGroup.style.right }));
+            } else {
+                floatingGroup.classList.toggle('open'); // tap → abrir/cerrar panel
             }
+            // Evita que el mousedown sintético posterior resetee dragState.hasMoved
+            e.preventDefault();
         });
     }
 
-    const PAD = 16;
-
-    function dragStart(clientX, clientY) {
-        const rect = floatingGroup.getBoundingClientRect();
-        dragState.startBottom = window.innerHeight - rect.bottom;
-        dragState.startRight  = window.innerWidth  - rect.right;
-        dragState.active   = true;
-        dragState.hasMoved = false;
-        dragState.startX   = clientX;
-        dragState.startY   = clientY;
-        floatingGroup.classList.add('dragging');
-    }
-
-    function dragMove(clientX, clientY) {
-        if (!dragState.active) return;
-        const dx = clientX - dragState.startX;
-        const dy = clientY - dragState.startY;
-        if (Math.abs(dx) > 3 || Math.abs(dy) > 3) dragState.hasMoved = true;
-        const w = floatingGroup.offsetWidth;
-        const h = floatingGroup.offsetHeight;
-        const newBottom = dragState.startBottom - dy;
-        const newRight  = dragState.startRight  - dx;
-        floatingGroup.style.top    = 'auto'; // limpiar top si quedó de open-down
-        floatingGroup.style.bottom = Math.max(PAD, Math.min(newBottom, window.innerHeight - h - PAD)) + 'px';
-        floatingGroup.style.right  = Math.max(PAD, Math.min(newRight,  window.innerWidth  - w - PAD)) + 'px';
-    }
-
-    function dragEnd() {
-        if (!dragState.active) return;
-        dragState.active = false;
-        floatingGroup.classList.remove('dragging');
-        if (dragState.hasMoved) {
-            localStorage.setItem('controlPos', JSON.stringify({
-                bottom: floatingGroup.style.bottom,
-                right:  floatingGroup.style.right
-            }));
+    // Restaurar posición del FAB clampeada al viewport actual.
+    // Sin el clamp, una posición guardada en escritorio (p.ej. right:580px)
+    // deja el FAB fuera de pantalla en móvil.
+    const savedPos = JSON.parse(localStorage.getItem('controlPos') || '{}');
+    if (savedPos.bottom && floatingGroup) {
+        const clampedBottom = Math.max(PAD, Math.min(parseFloat(savedPos.bottom), window.innerHeight - 60 - PAD));
+        const clampedRight  = Math.max(PAD, Math.min(parseFloat(savedPos.right),  window.innerWidth  - 60 - PAD));
+        floatingGroup.style.bottom = clampedBottom + 'px';
+        floatingGroup.style.right  = clampedRight  + 'px';
+        // Si la posición fue corregida, actualizar localStorage para este viewport
+        if (clampedRight !== parseFloat(savedPos.right) || clampedBottom !== parseFloat(savedPos.bottom)) {
+            localStorage.setItem('controlPos', JSON.stringify({ bottom: clampedBottom + 'px', right: clampedRight + 'px' }));
         }
-        setTimeout(() => { dragState.hasMoved = false; }, 0);
     }
 
-    if (controlFab) {
-        controlFab.addEventListener('mousedown', (e) => { e.preventDefault(); dragStart(e.clientX, e.clientY); });
-        controlFab.addEventListener('touchstart', (e) => { dragStart(e.touches[0].clientX, e.touches[0].clientY); }, { passive: true });
-    }
-    document.addEventListener('mousemove', (e) => dragMove(e.clientX, e.clientY));
-    document.addEventListener('touchmove', (e) => { if (dragState.active) dragMove(e.touches[0].clientX, e.touches[0].clientY); }, { passive: true });
-    document.addEventListener('mouseup',   dragEnd);
-    document.addEventListener('touchend',  dragEnd);
-
-    const savedPos = localStorage.getItem('controlPos');
-    if (savedPos && floatingGroup) {
-        try {
-            const pos = JSON.parse(savedPos);
-            const w = floatingGroup.offsetWidth  || 54;
-            const h = floatingGroup.offsetHeight || 54;
-            let bottom, right;
-            if (pos.bottom !== undefined) {
-                bottom = parseFloat(pos.bottom);
-                right  = parseFloat(pos.right);
-            } else if (pos.top !== undefined) {
-                bottom = window.innerHeight - parseFloat(pos.top) - h;
-                right  = window.innerWidth  - parseFloat(pos.left) - w;
-            }
-            if (bottom !== undefined) {
-                floatingGroup.style.bottom = Math.max(PAD, Math.min(bottom, window.innerHeight - h - PAD)) + 'px';
-                floatingGroup.style.right  = Math.max(PAD, Math.min(right,  window.innerWidth  - w - PAD)) + 'px';
-            }
-        } catch (_) { localStorage.removeItem('controlPos'); }
-    }
-
-    function positionPicker(picker, btn) {
-        const groupRect = floatingGroup.getBoundingClientRect();
-        const r   = btn.getBoundingClientRect();
-        const GAP = 12;
-        const pw  = picker.offsetWidth  || 180;
-        const ph  = picker.offsetHeight || 160;
-
-        const spaceOnLeft = groupRect.left - GAP;
-        if (spaceOnLeft >= pw) {
-            picker.style.right = (window.innerWidth - groupRect.left + GAP) + 'px';
-            picker.style.left  = 'auto';
-        } else {
-            picker.style.left  = (groupRect.right + GAP) + 'px';
-            picker.style.right = 'auto';
-        }
-
-        const btnCenterY = r.top + r.height / 2;
-        let top = btnCenterY - ph / 2;
-        top = Math.max(GAP, Math.min(top, window.innerHeight - ph - GAP));
-        picker.style.top    = top + 'px';
-        picker.style.bottom = 'auto';
-    }
-
-    if (paletteToggle && palettePicker) {
-        paletteToggle.onclick = (e) => {
-            e.stopPropagation();
-            a11yPicker?.classList.remove('open');
-            const opening = !palettePicker.classList.contains('open');
-            if (opening) positionPicker(palettePicker, paletteToggle);
-            palettePicker.classList.toggle('open');
-        };
-    }
-
-    if (a11yToggle && a11yPicker) {
-        a11yToggle.onclick = (e) => {
-            e.stopPropagation();
-            palettePicker?.classList.remove('open');
-            const opening = !a11yPicker.classList.contains('open');
-            if (opening) positionPicker(a11yPicker, a11yToggle);
-            a11yPicker.classList.toggle('open');
-        };
-    }
+    // Re-clampear al cambiar tamaño de ventana (rotación móvil, resize escritorio)
+    window.addEventListener('resize', () => {
+        if (!floatingGroup) return;
+        const b = parseFloat(floatingGroup.style.bottom) || PAD;
+        const r = parseFloat(floatingGroup.style.right)  || PAD;
+        floatingGroup.style.bottom = Math.max(PAD, Math.min(b, window.innerHeight - 60 - PAD)) + 'px';
+        floatingGroup.style.right  = Math.max(PAD, Math.min(r, window.innerWidth  - 60 - PAD)) + 'px';
+    });
 }
