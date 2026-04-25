@@ -69,25 +69,35 @@ function _formatQuality(quality) {
 
 export function smartTransposeChord(chord, interval, preferFlats) {
     try {
-        const chordInfo = Tonal.Chord.get(chord);
-        const root = chordInfo.tonic;
-        const quality = chordInfo.type || '';
+        // Separar el acorde principal de la nota del bajo ANTES de llamar a Tonal.
+        // Tonal.Chord.get no soporta slash chords y devuelve tonic:null para "D/F#",
+        // lo que haría que el acorde completo se devuelva sin transponer.
+        const slashIdx  = chord.indexOf('/');
+        const mainChord = slashIdx >= 0 ? chord.slice(0, slashIdx) : chord;
+        const bassNote  = slashIdx >= 0 ? chord.slice(slashIdx + 1) : null;
+
+        const chordInfo = Tonal.Chord.get(mainChord);
+        const root      = chordInfo.tonic;
+        const quality   = chordInfo.type || '';
         if (!root) return chord;
 
-        let transposedRoot;
-        if (Tonal.Note?.transpose) {
-            transposedRoot = Tonal.Note.transpose(root, interval);
-        } else if (Tonal.transpose) {
-            transposedRoot = Tonal.transpose(root, interval);
-        } else { return chord; }
+        // Helper: transpone una sola nota con el mismo intervalo y preferencia de alteración
+        const transposeNote = (note) => {
+            let t;
+            if (Tonal.Note?.transpose) t = Tonal.Note.transpose(note, interval);
+            else if (Tonal.transpose)  t = Tonal.transpose(note, interval);
+            else return note;
+            if (preferFlats && t.includes('#'))  t = Tonal.Note.enharmonic(t);
+            else if (!preferFlats && t.includes('b')) t = Tonal.Note.enharmonic(t);
+            return Tonal.Note.simplify(t);
+        };
 
-        if (preferFlats && transposedRoot.includes('#')) {
-            transposedRoot = Tonal.Note.enharmonic(transposedRoot);
-        } else if (!preferFlats && transposedRoot.includes('b')) {
-            transposedRoot = Tonal.Note.enharmonic(transposedRoot);
-        }
+        const newRoot   = transposeNote(root);
+        const newChord  = newRoot + _formatQuality(quality);
 
-        return Tonal.Note.simplify(transposedRoot) + _formatQuality(quality);
+        // Si había bajo, transponerlo con el mismo intervalo y reconstruir "Root/Bass"
+        if (!bassNote) return newChord;
+        return newChord + '/' + transposeNote(bassNote);
     } catch { return chord; }
 }
 
