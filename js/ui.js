@@ -262,6 +262,15 @@ export function initTheme() {
     const dragState     = { active: false, hasMoved: false, startX: 0, startY: 0, startBottom: 0, startRight: 0 };
     const PAD = 16;
 
+    // Detecta si el panel debe abrirse hacia abajo (FAB cerca del borde superior)
+    function updatePanelDirection() {
+        if (!floatingGroup) return;
+        const fabBottom = parseFloat(floatingGroup.style.bottom) || PAD;
+        const fabTopY   = window.innerHeight - fabBottom - 54; // 54 = altura del FAB
+        const PANEL_SAFE = 286; // max-height(260) + gap(10) + padding(16)
+        floatingGroup.classList.toggle('panel-below', fabTopY < PANEL_SAFE);
+    }
+
     if (controlFab) {
         controlFab.addEventListener('mousedown', (e) => {
             const rect = floatingGroup.getBoundingClientRect();
@@ -278,6 +287,7 @@ export function initTheme() {
             if (Math.abs(dx) > 3 || Math.abs(dy) > 3) dragState.hasMoved = true;
             floatingGroup.style.bottom = Math.max(PAD, Math.min(dragState.startBottom - dy, window.innerHeight - 60 - PAD)) + 'px';
             floatingGroup.style.right  = Math.max(PAD, Math.min(dragState.startRight  - dx, window.innerWidth  - 60 - PAD)) + 'px';
+            updatePanelDirection();
         });
 
         document.addEventListener('mouseup', () => {
@@ -308,6 +318,7 @@ export function initTheme() {
             if (Math.abs(dx) > 3 || Math.abs(dy) > 3) dragState.hasMoved = true;
             floatingGroup.style.bottom = Math.max(PAD, Math.min(dragState.startBottom - dy, window.innerHeight - 60 - PAD)) + 'px';
             floatingGroup.style.right  = Math.max(PAD, Math.min(dragState.startRight  - dx, window.innerWidth  - 60 - PAD)) + 'px';
+            updatePanelDirection();
         }, { passive: false });
 
         document.addEventListener('touchend', (e) => {
@@ -338,6 +349,7 @@ export function initTheme() {
             localStorage.setItem('controlPos', JSON.stringify({ bottom: clampedBottom + 'px', right: clampedRight + 'px' }));
         }
     }
+    updatePanelDirection();
 
     // Re-clampear al cambiar tamaño de ventana (rotación móvil, resize escritorio)
     window.addEventListener('resize', () => {
@@ -346,5 +358,6 @@ export function initTheme() {
         const r = parseFloat(floatingGroup.style.right)  || PAD;
         floatingGroup.style.bottom = Math.max(PAD, Math.min(b, window.innerHeight - 60 - PAD)) + 'px';
         floatingGroup.style.right  = Math.max(PAD, Math.min(r, window.innerWidth  - 60 - PAD)) + 'px';
+        updatePanelDirection();
     });
 }

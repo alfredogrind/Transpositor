@@ -16,6 +16,7 @@
   --chord-odd-bg: rgba(255, 255, 255, 0.1);
   --chord-odd-text: #f5f5f7;
   --chord-even-text: #000000;
+  --wave-color: rgba(255, 255, 255, 0.4);
 }
 
 body.light-mode {
@@ -30,6 +31,7 @@ body.light-mode {
   --control-item-bg: rgba(255, 255, 255, 0.6);
   --chord-odd-bg: var(--surface2);
   --chord-odd-text: #1d1d1f;
+  --wave-color: rgba(0, 0, 0, 0.15);
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-font-smoothing: antialiased; }
@@ -332,6 +334,18 @@ main {
     display: flex; flex-direction: column; align-items: center; gap: 10px;
 }
 
+/* Cuando el FAB está cerca del borde superior, el panel se abre hacia abajo */
+.floating-control-group.panel-below .control-panel {
+    position: absolute;
+    top: 64px;   /* 54px FAB + 10px gap */
+    right: 0;
+    left: auto;
+    transform: translateY(-10px) scale(0.88);
+}
+.floating-control-group.panel-below.open .control-panel {
+    transform: translateY(0) scale(1);
+}
+
 .control-panel {
     display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 10px;
     background: var(--surface); border: 1px solid var(--border); border-radius: 28px;
@@ -603,7 +617,7 @@ html[data-chord-size="xl"] { font-size: 20px; }
   left: 0;
   right: 0;
   bottom: 0;
-  border: 2px solid rgba(255, 255, 255, 0.4);
+  border: 2px solid var(--wave-color);
   border-radius: 50%;
   pointer-events: none;
   animation: wave-ripple 3s infinite ease-out;
