@@ -31,14 +31,28 @@ export function extractChordsWithRepetition(text) {
 }
 
 function _getChordsOnly(text) {
-    const clean = text.toUpperCase().replace(/♯/g, '#').replace(/♭/g, 'b');
-    const chordRegex = /[A-G][\s]?[#b]?(M|m|MAJ|MIN|DIM|AUG|SUS|ADD|7|9|13)?(?=\s|$|[-(),|/])/g;
+    // Normalización en dos fases para preservar la 'b' bemol frente al toUpperCase().
+    // Sin esto, 'Bb' → 'BB' y el bemol queda irreconocible como nombre de nota.
+    // Fase 1: proteger '[A-G]b' (raíz mayúscula + bemol) antes de convertir a mayúsculas.
+    // Fase 2: uppercase todo; el símbolo ♭ no se ve afectado.
+    // Fase 3: restaurar ♭ como 'b' minúscula para que [#b]? siga funcionando.
+    const clean = text
+        .replace(/♯/g, '#')
+        .replace(/♭/g, 'b')
+        .replace(/([A-G])b/g, '$1♭')     // protege bemoles con raíz mayúscula: Bb → B♭
+        .replace(/([a-g])b/g, (_, r) => r.toUpperCase() + '♭')  // y con raíz minúscula: ab → A♭
+        .toUpperCase()
+        .replace(/♭/g, 'b');             // restaura bemol como 'b' minúscula
+
+    // (?:\/[A-G][#b]?)? consume el bajo en acordes slash (D/F#) como token único.
+    // '/' ya no está en el lookahead porque es parte del acorde, no un delimitador.
+    const chordRegex = /[A-G][#b]?(M|m|MAJ|MIN|DIM|AUG|SUS|ADD|7|9|13)?(?:\/[A-G][#b]?)?(?=\s|$|[-(),|])/g;
     const matches = clean.match(chordRegex) || [];
     return matches.map(chord => {
-        const n = chord.replace(/\s+/g, '');
-        // M sola al final = sufijo menor (era 'm' antes del toUpperCase)
-        if (/^[A-G][#b]?M$/.test(n)) return n.slice(0, -1) + 'm';
-        return n;
+        // M inmediatamente tras la raíz (antes del slash o al final) = sufijo menor.
+        // Cubre: DM → Dm, AM/C → Am/C, DM/F# → Dm/F#
+        if (/^[A-G][#b]?M(\/[A-G][#b]?)?$/.test(chord)) return chord.replace('M', 'm');
+        return chord;
     });
 }
 
