@@ -125,23 +125,37 @@ function refreshUI() {
         getLabelFn(detectedKey?.root)
     );
 
-    ui.renderToneGrid(document.getElementById('gridTones'), (note) => { targetKey = note; });
+    ui.renderToneGrid(document.getElementById('gridTones'), detectedKey?.quality, (note) => { targetKey = note; });
     document.getElementById('toneSelector').style.display = 'block';
 }
 
 btnTranspose.onclick = () => {
     if (!songData.length) return showAlert('Primero carga y escanea una partitura.');
     if (!targetKey) return showAlert('Selecciona un tono de destino.');
-    const first = songData[0].chords[0];
-    const root = Tonal.Chord.get(first).tonic || first.match(/^[A-G][#b]?/)[0];
-    const interval = Tonal.distance(root, targetKey);
-    const preferFlats = ['F', 'Bb', 'Eb', 'Ab', 'Db', 'Gb'].includes(targetKey);
+
+    // targetKey puede ser "Dm", "F#m"… — extraer solo la raíz para cálculos de intervalo
+    const targetRoot = targetKey.replace(/m$/, '');
+
+    const first  = songData[0].chords[0];
+    const source = Tonal.Chord.get(first).tonic || first.match(/^[A-G][#b]?/)[0];
+    const interval = Tonal.distance(source, targetRoot);
+
+    // Claves que usan bemoles (mayor + relativas menores)
+    const preferFlats = [
+        'F','Bb','Eb','Ab','Db','Gb',       // mayores con bemoles
+        'Dm','Gm','Cm','Fm','Bbm','Ebm',    // menores relativas
+    ].includes(targetKey);
 
     lastTransposedData = songData.map(item => ({
         section: item.section,
-        chords: item.chords.map(c => music.smartTransposeChord(c, interval, preferFlats))
+        chords:  item.chords.map(c => music.smartTransposeChord(c, interval, preferFlats)),
     }));
-    ui.renderFinalResults(document.getElementById('outputContainer'), lastTransposedData, getLabelFn(targetKey));
+
+    ui.renderFinalResults(
+        document.getElementById('outputContainer'),
+        lastTransposedData,
+        getLabelFn(targetRoot),   // grados relativos a la raíz (sin sufijo)
+    );
     document.getElementById('finalOutput').style.display = 'block';
 };
 
@@ -188,7 +202,7 @@ function initNotationToggle() {
                 );
             }
             if (lastTransposedData) {
-                ui.renderFinalResults(document.getElementById('outputContainer'), lastTransposedData, getLabelFn(targetKey));
+                ui.renderFinalResults(document.getElementById('outputContainer'), lastTransposedData, getLabelFn(targetKey?.replace(/m$/, '')));
             }
         });
     });

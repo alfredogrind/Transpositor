@@ -104,7 +104,15 @@ const DEGREE_NAMES = ['1','1#','2','2#','3','4','4#','5','5#','6','6#','7'];
 
 export function convertChordToDegree(chord, rootNote) {
     try {
-        const chordInfo = Tonal.Chord.get(chord);
+        // Separar el acorde principal del bajo en notación slash (ej. "D/F#" → "D" + "F#").
+        // Tonal.Chord.get no reconoce slash chords, por lo que hay que aislar cada parte
+        // antes de invocarla; de lo contrario devuelve tonic=null y el fallback devuelve
+        // el nombre literal en lugar del grado.
+        const slashIdx  = chord.indexOf('/');
+        const mainChord = slashIdx >= 0 ? chord.slice(0, slashIdx) : chord;
+        const bassNote  = slashIdx >= 0 ? chord.slice(slashIdx + 1) : null;
+
+        const chordInfo = Tonal.Chord.get(mainChord);
         const chordRoot = chordInfo.tonic;
         if (
             !chordRoot ||
@@ -112,9 +120,19 @@ export function convertChordToDegree(chord, rootNote) {
             CHROMATIC_MAP[rootNote]  === undefined
         ) return chord;
 
-        const semitones    = ((CHROMATIC_MAP[chordRoot] - CHROMATIC_MAP[rootNote]) % 12 + 12) % 12;
-        const qualitySuffix = chord.slice(chordRoot.length);
-        return DEGREE_NAMES[semitones] + qualitySuffix;
+        // Grado del acorde principal relativo a la tonalidad
+        const rootPc        = CHROMATIC_MAP[rootNote];
+        const semitones     = ((CHROMATIC_MAP[chordRoot] - rootPc) % 12 + 12) % 12;
+        const qualitySuffix = mainChord.slice(chordRoot.length);
+        const degree        = DEGREE_NAMES[semitones] + qualitySuffix;
+
+        if (!bassNote) return degree;
+
+        // Grado del bajo relativo a la misma tonalidad
+        const bassPc = CHROMATIC_MAP[bassNote];
+        if (bassPc === undefined) return degree + '/' + bassNote; // bajo desconocido: literal
+        const bassDegree = ((bassPc - rootPc) % 12 + 12) % 12;
+        return degree + '/' + DEGREE_NAMES[bassDegree];
     } catch { return chord; }
 }
 

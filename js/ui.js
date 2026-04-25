@@ -98,15 +98,19 @@ export function renderDetectedKey(container, keyInfo) {
     container.classList.add('visible');
 }
 
-export function renderToneGrid(container, onSelect) {
-    const notes = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+export function renderToneGrid(container, mode, onSelect) {
+    const notes  = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+    const suffix = mode === 'menor' ? 'm' : '';
     container.innerHTML = "";
     notes.forEach(note => {
-        const btn = document.createElement('button');
-        btn.className = 'btn-tone'; btn.textContent = note;
+        const label = note + suffix;
+        const btn   = document.createElement('button');
+        btn.className   = 'btn-tone';
+        btn.textContent = label;
         btn.onclick = () => {
             document.querySelectorAll('.btn-tone').forEach(b => b.classList.remove('selected'));
-            btn.classList.add('selected'); onSelect(note);
+            btn.classList.add('selected');
+            onSelect(label);        // "Dm", "Em"... o "D", "E"... según el modo
         };
         container.appendChild(btn);
     });
