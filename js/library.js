@@ -5,7 +5,6 @@ let cancionEnEdicion  = null;
 let cancionAEliminar  = null;
 
 // ── DOM refs ──────────────────────────────────────────
-const btnBiblioteca    = document.getElementById('btnBiblioteca');
 const seccionLib       = document.getElementById('seccionBiblioteca');
 const btnOcultar       = document.getElementById('btnOcultarBiblioteca');
 const listaCanciones   = document.getElementById('listaCanciones');
@@ -190,21 +189,18 @@ document.addEventListener('keydown', e => {
 });
 
 // ── Toggle sección ─────────────────────────────────────
-btnBiblioteca.addEventListener('click', () => {
+export function toggleLibrary() {
     const visible = seccionLib.style.display !== 'none';
     if (visible) {
         seccionLib.style.display = 'none';
-        btnBiblioteca.textContent = 'Biblioteca';
     } else {
         seccionLib.style.display = 'block';
-        btnBiblioteca.textContent = 'Ocultar Biblioteca';
         cargarBiblioteca();
     }
-});
+}
 
 btnOcultar.addEventListener('click', () => {
     seccionLib.style.display = 'none';
-    btnBiblioteca.textContent = 'Biblioteca';
 });
 
 // ── Utilidades ─────────────────────────────────────────
@@ -226,5 +222,4 @@ function notificar(msg, error = false) {
     }, 3000);
 }
 
-// Exportar para que main.js pueda recargar la biblioteca tras guardar
 export { cargarBiblioteca };

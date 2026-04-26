@@ -23,9 +23,6 @@
     </header>
 
     <main>
-        <!-- Botón Biblioteca siempre visible -->
-        <button class="btn-action lib-toggle-btn" id="btnBiblioteca">Biblioteca</button>
-
         <!-- Sección Biblioteca (oculta por defecto) -->
         <div id="seccionBiblioteca" style="display:none; width:100%;">
             <div class="lib-panel">
@@ -237,7 +234,23 @@
         </div>
     </div>
 
+    <!-- Smart Floating Menu -->
+    <div id="sfmGroup" class="sfm-group">
+        <div class="sfm-menu" id="sfmMenu" role="menu">
+            <button class="sfm-item" id="sfmOpenLibrary" role="menuitem">
+                <span class="sfm-item-icon">♫</span>
+                Biblioteca
+            </button>
+            <button class="sfm-item sfm-item--inactive" id="sfmSaveScan" role="menuitem">
+                <span class="sfm-item-icon">⊕</span>
+                Guardar escaneo
+            </button>
+        </div>
+        <button class="sfm-trigger" id="sfmTrigger" aria-label="Acciones rápidas" aria-expanded="false">
+            <span class="sfm-trigger-icon">+</span>
+        </button>
+    </div>
+
     <script type="module" src="js/main.js"></script>
-    <script type="module" src="js/library.js"></script>
 </body>
 </html>

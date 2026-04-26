@@ -116,6 +116,24 @@ export function renderToneGrid(container, mode, onSelect) {
     });
 }
 
+function _checkSFMCollision(fabEl) {
+    const sfmTrigger = document.getElementById('sfmTrigger');
+    const sfmGroup   = document.getElementById('sfmGroup');
+    if (!sfmTrigger || !sfmGroup || !fabEl) return;
+    requestAnimationFrame(() => {
+        const PAD = 10;
+        const t = sfmTrigger.getBoundingClientRect();
+        const f = fabEl.getBoundingClientRect();
+        const overlap = t.right + PAD > f.left && t.left - PAD < f.right &&
+                        t.bottom + PAD > f.top  && t.top  - PAD < f.bottom;
+        if (overlap) {
+            sfmGroup.style.bottom = (window.innerHeight - f.top + PAD) + 'px';
+        } else {
+            sfmGroup.style.bottom = '';
+        }
+    });
+}
+
 /**
  * Posiciona un picker a la izquierda del botón toggle, clampeado al viewport.
  * Los pickers son position:fixed, así que sus dimensiones son siempre accesibles.
@@ -298,6 +316,7 @@ export function initTheme() {
             if (!dragState.active) return;
             dragState.active = false;
             if (dragState.hasMoved) localStorage.setItem('controlPos', JSON.stringify({ bottom: floatingGroup.style.bottom, right: floatingGroup.style.right }));
+            _checkSFMCollision(floatingGroup);
         });
 
         controlFab.onclick = () => { if (!dragState.hasMoved) floatingGroup.classList.toggle('open'); };
@@ -331,6 +350,7 @@ export function initTheme() {
             dragState.active = false;
             if (wasMoved) {
                 localStorage.setItem('controlPos', JSON.stringify({ bottom: floatingGroup.style.bottom, right: floatingGroup.style.right }));
+                _checkSFMCollision(floatingGroup);
             } else {
                 floatingGroup.classList.toggle('open'); // tap → abrir/cerrar panel
             }
@@ -354,6 +374,7 @@ export function initTheme() {
         }
     }
     updatePanelDirection();
+    _checkSFMCollision(floatingGroup);
 
     // Re-clampear al cambiar tamaño de ventana (rotación móvil, resize escritorio)
     window.addEventListener('resize', () => {
@@ -363,5 +384,50 @@ export function initTheme() {
         floatingGroup.style.bottom = Math.max(PAD, Math.min(b, window.innerHeight - 60 - PAD)) + 'px';
         floatingGroup.style.right  = Math.max(PAD, Math.min(r, window.innerWidth  - 60 - PAD)) + 'px';
         updatePanelDirection();
+        _checkSFMCollision(floatingGroup);
     });
+}
+
+export function initSFM(onOpenLibrary, onSaveScan) {
+    const group   = document.getElementById('sfmGroup');
+    const trigger = document.getElementById('sfmTrigger');
+    const btnLib  = document.getElementById('sfmOpenLibrary');
+    const btnSave = document.getElementById('sfmSaveScan');
+    if (!group || !trigger) return;
+
+    trigger.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isOpen = group.classList.toggle('open');
+        trigger.setAttribute('aria-expanded', String(isOpen));
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!group.contains(e.target)) {
+            group.classList.remove('open');
+            trigger.setAttribute('aria-expanded', 'false');
+        }
+    });
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            group.classList.remove('open');
+            trigger.setAttribute('aria-expanded', 'false');
+        }
+    });
+
+    btnLib?.addEventListener('click', () => {
+        group.classList.remove('open');
+        trigger.setAttribute('aria-expanded', 'false');
+        onOpenLibrary();
+    });
+
+    btnSave?.addEventListener('click', () => {
+        group.classList.remove('open');
+        trigger.setAttribute('aria-expanded', 'false');
+        onSaveScan();
+    });
+}
+
+export function updateSFMSaveState(hasData) {
+    document.getElementById('sfmSaveScan')?.classList.toggle('sfm-item--inactive', !hasData);
 }

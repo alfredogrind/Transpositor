@@ -3,6 +3,7 @@ import * as music from './music.js';
 import * as ui from './ui.js';
 import * as template from './template.js';
 import API from './api.js';
+import { toggleLibrary } from './library.js';
 
 let songData          = [];
 let targetKey         = null;
@@ -15,6 +16,8 @@ document.addEventListener('DOMContentLoaded', () => {
     initTemplateModal();
     initAlertModal();
     initNotationToggle();
+    ui.initSFM(toggleLibrary, scrollToOrShowSavePanel);
+    ui.updateSFMSaveState(false);
 });
 
 const btnProcess = document.getElementById('btnProcess');
@@ -66,6 +69,8 @@ btnProcess.onclick = async () => {
     try {
         ui.showScanner(loaderWrap, statusText, "Escaneando canción...");
         songData = [];
+        lastTransposedData = null;
+        ui.updateSFMSaveState(false);
         document.getElementById('detectionResults').innerHTML = "";
         document.getElementById('finalOutput').style.display = 'none';
 
@@ -159,7 +164,18 @@ btnTranspose.onclick = () => {
     );
     document.getElementById('finalOutput').style.display = 'block';
     showSavePanel(detectedKey?.root || '');
+    ui.updateSFMSaveState(true);
 };
+
+function scrollToOrShowSavePanel() {
+    if (!lastTransposedData) return;
+    let panel = document.getElementById('savePanel');
+    if (!panel) {
+        showSavePanel(detectedKey?.root || '');
+        panel = document.getElementById('savePanel');
+    }
+    panel?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
 
 function showSavePanel(tonoOriginal) {
     const existing = document.getElementById('savePanel');
