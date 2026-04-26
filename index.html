@@ -23,6 +23,54 @@
     </header>
 
     <main>
+        <!-- Botón Biblioteca siempre visible -->
+        <button class="btn-action lib-toggle-btn" id="btnBiblioteca">Biblioteca</button>
+
+        <!-- Sección Biblioteca (oculta por defecto) -->
+        <div id="seccionBiblioteca" style="display:none; width:100%;">
+            <div class="lib-panel">
+                <div class="lib-panel-header">
+                    <span class="section-title">Mis Canciones Guardadas</span>
+                    <button class="lib-close-btn" id="btnOcultarBiblioteca">✕</button>
+                </div>
+
+                <!-- Estadísticas -->
+                <div class="lib-stats">
+                    <div class="lib-stat"><span id="statTotal">0</span><small>Canciones</small></div>
+                    <div class="lib-stat"><span id="statArtistas">0</span><small>Artistas</small></div>
+                    <div class="lib-stat"><span id="statBpm">—</span><small>BPM prom.</small></div>
+                </div>
+
+                <!-- Búsqueda y filtros -->
+                <div class="lib-filtros">
+                    <input id="libBuscar" class="save-input" type="text" placeholder="Buscar por nombre, artista, etiqueta…">
+                    <div class="lib-filtros-row">
+                        <input id="libBpmMin" class="save-input" type="number" placeholder="BPM mín" min="1">
+                        <input id="libBpmMax" class="save-input" type="number" placeholder="BPM máx" max="300">
+                        <select id="libTono" class="save-input">
+                            <option value="">Todos los tonos</option>
+                            <option value="C">Do (C)</option>
+                            <option value="C#">Do# (C#)</option>
+                            <option value="D">Re (D)</option>
+                            <option value="D#">Re# (D#)</option>
+                            <option value="E">Mi (E)</option>
+                            <option value="F">Fa (F)</option>
+                            <option value="F#">Fa# (F#)</option>
+                            <option value="G">Sol (G)</option>
+                            <option value="G#">Sol# (G#)</option>
+                            <option value="A">La (A)</option>
+                            <option value="A#">La# (A#)</option>
+                            <option value="B">Si (B)</option>
+                        </select>
+                        <button id="libLimpiar" class="lib-btn lib-btn-secondary">Limpiar</button>
+                    </div>
+                </div>
+
+                <!-- Lista -->
+                <div id="listaCanciones" class="lib-lista"></div>
+            </div>
+        </div>
+
         <div class="upload-zone" id="dropZone">
             <input type="file" id="fileInput" accept="image/*,application/pdf,.txt,.csv,.json" multiple style="display: none;">
 
@@ -143,6 +191,53 @@
         </div>
     </div>
 
+    <!-- Modal: editar canción -->
+    <div id="modalEditar" class="modal-overlay" aria-hidden="true">
+        <div class="modal-card" role="dialog" style="max-width:480px;">
+            <div class="modal-header">
+                <span class="modal-title">Editar Canción</span>
+                <button class="modal-close" id="btnCerrarEditar" aria-label="Cerrar">✕</button>
+            </div>
+            <form id="formEditar" style="padding:1.25rem;display:flex;flex-direction:column;gap:0.75rem;">
+                <input id="editCantautor"  class="save-input" type="text"   placeholder="Cantautor *" required>
+                <input id="editNombre"     class="save-input" type="text"   placeholder="Nombre de la canción *" required>
+                <select id="editTono" class="save-input">
+                    <option value="">Tono original…</option>
+                    <option value="C">Do (C)</option><option value="C#">Do# (C#)</option>
+                    <option value="D">Re (D)</option><option value="D#">Re# (D#)</option>
+                    <option value="E">Mi (E)</option><option value="F">Fa (F)</option>
+                    <option value="F#">Fa# (F#)</option><option value="G">Sol (G)</option>
+                    <option value="G#">Sol# (G#)</option><option value="A">La (A)</option>
+                    <option value="A#">La# (A#)</option><option value="B">Si (B)</option>
+                </select>
+                <input id="editBpm"        class="save-input" type="number" placeholder="BPM" min="1" max="300">
+                <input id="editEtiquetas"  class="save-input" type="text"   placeholder="Etiquetas (separadas por coma)">
+                <textarea id="editNotas"   class="save-input" rows="3"      placeholder="Notas adicionales" style="resize:vertical;"></textarea>
+                <div style="display:flex;gap:0.6rem;margin-top:0.25rem;">
+                    <button type="submit"  class="btn-action" style="flex:1;">Guardar cambios</button>
+                    <button type="button" id="btnCerrarEditar2" class="btn-action" style="flex:1;background:var(--surface2);">Cancelar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: confirmar eliminar -->
+    <div id="modalConfirmar" class="modal-overlay" aria-hidden="true">
+        <div class="modal-card alert-modal-card" role="alertdialog" style="max-width:380px;">
+            <div class="modal-header">
+                <span class="modal-title">Confirmar eliminación</span>
+            </div>
+            <div class="alert-icon" style="color:#e55;">!</div>
+            <p class="modal-desc">¿Eliminar esta canción de la biblioteca?</p>
+            <p class="modal-desc" id="confirmarNombre" style="font-weight:600;color:var(--accent);"></p>
+            <div style="display:flex;gap:0.6rem;padding:0 1.25rem 1.25rem;">
+                <button id="btnConfirmarEliminar" class="btn-action" style="flex:1;background:#c0392b;">Eliminar</button>
+                <button id="btnCancelarEliminar"  class="btn-action" style="flex:1;background:var(--surface2);">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
     <script type="module" src="js/main.js"></script>
+    <script type="module" src="js/library.js"></script>
 </body>
 </html>

@@ -738,3 +738,258 @@ html[data-chord-size="xl"] { font-size: 20px; }
 .save-input::placeholder {
     color: var(--text3);
 }
+
+/* ── Biblioteca ─────────────────────────────────────── */
+.lib-toggle-btn {
+    align-self: flex-end;
+    padding: 0.5rem 1.25rem;
+    font-size: 0.85rem;
+    margin-bottom: 0;
+}
+
+.lib-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    box-shadow: var(--card-shadow);
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+    from { opacity: 0; transform: translateY(-12px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.lib-panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.lib-close-btn {
+    background: none;
+    border: none;
+    color: var(--text3);
+    font-size: 1.1rem;
+    cursor: pointer;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.5rem;
+    transition: color 0.2s;
+}
+.lib-close-btn:hover { color: var(--text); }
+
+/* Stats */
+.lib-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.75rem;
+}
+
+.lib-stat {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 1rem;
+    padding: 0.75rem;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+.lib-stat span {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: var(--accent);
+    line-height: 1;
+}
+
+.lib-stat small {
+    font-size: 0.72rem;
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+/* Filtros */
+.lib-filtros {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.lib-filtros-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1.4fr auto;
+    gap: 0.5rem;
+}
+
+/* Lista */
+.lib-lista {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.lib-loading, .lib-empty {
+    text-align: center;
+    color: var(--text3);
+    padding: 2rem 0;
+    font-size: 0.9rem;
+}
+
+/* Tarjeta */
+.lib-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 1rem;
+    padding: 1rem 1.1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.lib-card:hover {
+    border-color: var(--accent);
+    box-shadow: 0 4px 20px var(--accent-glow);
+}
+
+.lib-card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 0.75rem;
+}
+
+.lib-nombre {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--accent);
+}
+
+.lib-cantautor {
+    font-size: 0.83rem;
+    color: var(--text2);
+    font-style: italic;
+}
+
+.lib-badges {
+    display: flex;
+    gap: 0.4rem;
+    flex-shrink: 0;
+}
+
+.lib-badge {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text2);
+    font-size: 0.75rem;
+    padding: 0.2rem 0.6rem;
+    border-radius: 999px;
+    white-space: nowrap;
+}
+
+.lib-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+
+.lib-tag {
+    background: rgba(200, 169, 110, 0.12);
+    color: var(--accent);
+    font-size: 0.75rem;
+    padding: 0.2rem 0.65rem;
+    border-radius: 999px;
+    border: 1px solid rgba(200, 169, 110, 0.25);
+}
+
+.lib-notas {
+    font-size: 0.82rem;
+    color: var(--text3);
+    border-left: 2px solid var(--accent);
+    padding-left: 0.6rem;
+}
+
+.lib-acciones {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: flex-end;
+    padding-top: 0.4rem;
+    border-top: 1px solid var(--border);
+}
+
+.lib-btn {
+    padding: 0.4rem 0.9rem;
+    font-size: 0.82rem;
+    border: 1px solid var(--border);
+    border-radius: 0.6rem;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 0.2s, transform 0.15s;
+    font-weight: 500;
+}
+
+.lib-btn:hover { transform: translateY(-1px); }
+
+.lib-btn-edit {
+    background: var(--surface);
+    color: var(--text2);
+}
+.lib-btn-edit:hover { color: var(--accent); border-color: var(--accent); }
+
+.lib-btn-delete {
+    background: transparent;
+    color: #c0392b;
+    border-color: rgba(192, 57, 43, 0.3);
+}
+.lib-btn-delete:hover { background: rgba(192, 57, 43, 0.1); }
+
+.lib-btn-secondary {
+    background: var(--surface2);
+    color: var(--text2);
+}
+
+/* Notificaciones */
+.lib-notif {
+    position: fixed;
+    top: 1.5rem;
+    right: 1.5rem;
+    background: var(--surface2);
+    border: 1px solid var(--accent);
+    color: var(--text);
+    padding: 0.75rem 1.25rem;
+    border-radius: 0.9rem;
+    font-size: 0.88rem;
+    z-index: 9999;
+    opacity: 0;
+    transform: translateY(-8px);
+    transition: opacity 0.25s, transform 0.25s;
+    backdrop-filter: blur(20px);
+    box-shadow: var(--card-shadow);
+}
+
+.lib-notif-show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.lib-notif-error {
+    border-color: #c0392b;
+    color: #e74c3c;
+}
+
+/* Responsive */
+@media (max-width: 560px) {
+    .lib-stats { grid-template-columns: repeat(3, 1fr); }
+    .lib-filtros-row { grid-template-columns: 1fr 1fr; }
+    .lib-filtros-row select,
+    .lib-filtros-row button { grid-column: span 2; }
+    .lib-card-top { flex-direction: column; }
+}
