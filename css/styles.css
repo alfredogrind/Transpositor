@@ -698,3 +698,43 @@ html[data-chord-size="xl"] { font-size: 20px; }
 }
 
 #closeAlertBtn { margin-top: 0.25rem; }
+
+/* ── Save Panel ─────────────────────────────────────── */
+.save-panel {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 1.25rem;
+    padding: 1.5rem;
+    margin-top: 1.5rem;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+}
+
+.save-fields {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+
+.save-input {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+    padding: 0.65rem 1rem;
+    color: var(--text1);
+    font-size: 0.9rem;
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.2s;
+    box-sizing: border-box;
+}
+
+.save-input:focus {
+    border-color: var(--accent);
+}
+
+.save-input::placeholder {
+    color: var(--text3);
+}

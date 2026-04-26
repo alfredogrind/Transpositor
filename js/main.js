@@ -2,6 +2,7 @@ import * as ocr from './ocr.js';
 import * as music from './music.js';
 import * as ui from './ui.js';
 import * as template from './template.js';
+import API from './api.js';
 
 let songData          = [];
 let targetKey         = null;
@@ -157,7 +158,62 @@ btnTranspose.onclick = () => {
         getLabelFn(targetRoot),   // grados relativos a la raíz (sin sufijo)
     );
     document.getElementById('finalOutput').style.display = 'block';
+    showSavePanel(detectedKey?.root || '');
 };
+
+function showSavePanel(tonoOriginal) {
+    const existing = document.getElementById('savePanel');
+    if (existing) existing.remove();
+
+    const panel = document.createElement('div');
+    panel.id = 'savePanel';
+    panel.className = 'save-panel';
+    panel.innerHTML = `
+        <p class="section-title" style="margin-bottom:1rem;">Guardar en Biblioteca</p>
+        <div class="save-fields">
+            <input id="saveNombre"    class="save-input" type="text"   placeholder="Nombre de la canción *" />
+            <input id="saveCantautor" class="save-input" type="text"   placeholder="Cantautor *" />
+            <input id="saveBpm"       class="save-input" type="number" placeholder="BPM" min="1" max="300" />
+            <input id="saveEtiquetas" class="save-input" type="text"   placeholder="Etiquetas (separadas por coma)" />
+            <input id="saveNotas"     class="save-input" type="text"   placeholder="Notas adicionales" />
+        </div>
+        <button id="btnGuardar" class="btn-action" style="margin-top:1rem;">Guardar canción</button>
+        <p id="saveMsg" style="margin-top:0.5rem;font-size:0.85rem;text-align:center;"></p>
+    `;
+
+    document.getElementById('finalOutput').after(panel);
+
+    document.getElementById('btnGuardar').onclick = async () => {
+        const nombre    = document.getElementById('saveNombre').value.trim();
+        const cantautor = document.getElementById('saveCantautor').value.trim();
+        const msg       = document.getElementById('saveMsg');
+
+        if (!nombre || !cantautor) {
+            msg.style.color = 'var(--danger, #e55)';
+            msg.textContent = 'Nombre y cantautor son obligatorios.';
+            return;
+        }
+
+        try {
+            document.getElementById('btnGuardar').disabled = true;
+            await API.crear({
+                nombre,
+                cantautor,
+                tonoOriginal: tonoOriginal,
+                bpm: document.getElementById('saveBpm').value || null,
+                etiquetas: document.getElementById('saveEtiquetas').value,
+                notas: document.getElementById('saveNotas').value.trim()
+            });
+            msg.style.color = 'var(--accent, #4c8)';
+            msg.textContent = '✅ Canción guardada en la biblioteca.';
+            document.getElementById('btnGuardar').textContent = 'Guardado';
+        } catch (err) {
+            msg.style.color = 'var(--danger, #e55)';
+            msg.textContent = `❌ ${err.message}`;
+            document.getElementById('btnGuardar').disabled = false;
+        }
+    };
+}
 
 const toBase64 = file => new Promise(res => {
     const r = new FileReader(); r.onload = e => res(e.target.result); r.readAsDataURL(file);

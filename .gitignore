@@ -1,0 +1,36 @@
+# Dependencies
+node_modules/
+package-lock.json
+npm-debug.log
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Database
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+
+# Context/planning docs (no van al repo)
+CONTEXTO_FASE_1.md
+CONTEXTO_FASE_2.md
+CONTEXTO_FASE_3.md
+RESUMEN_EJECUTIVO.md
+context.md
