@@ -15,6 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
     ui.initTheme();
     initTemplateModal();
     initAlertModal();
+    initSavePanelDrawer();
     initNotationToggle();
     ui.initSFM(toggleLibrary, scrollToOrShowSavePanel);
     ui.updateSFMSaveState(false);
@@ -163,46 +164,61 @@ btnTranspose.onclick = () => {
         getLabelFn(targetRoot),   // grados relativos a la raíz (sin sufijo)
     );
     document.getElementById('finalOutput').style.display = 'block';
-    showSavePanel(detectedKey?.root || '');
+    closeSavePanel();
     ui.updateSFMSaveState(true);
 };
 
 function scrollToOrShowSavePanel() {
     if (!lastTransposedData) return;
-    let panel = document.getElementById('savePanel');
-    if (!panel) {
-        showSavePanel(detectedKey?.root || '');
-        panel = document.getElementById('savePanel');
-    }
-    panel?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    showSavePanel(detectedKey?.root || '');
+}
+
+function closeSavePanel() {
+    ui.closeOverlay(
+        document.getElementById('savePanelOverlay'),
+        document.getElementById('savePanelDrawer')
+    );
 }
 
 function showSavePanel(tonoOriginal) {
-    const existing = document.getElementById('savePanel');
-    if (existing) existing.remove();
+    const overlay = document.getElementById('savePanelOverlay');
+    if (!overlay) return;
 
-    const panel = document.createElement('div');
-    panel.id = 'savePanel';
-    panel.className = 'save-panel';
-    panel.innerHTML = `
-        <p class="section-title" style="margin-bottom:1rem;">Guardar en Biblioteca</p>
-        <div class="save-fields">
-            <input id="saveNombre"    class="save-input" type="text"   placeholder="Nombre de la canción *" />
-            <input id="saveCantautor" class="save-input" type="text"   placeholder="Cantautor *" />
-            <input id="saveBpm"       class="save-input" type="number" placeholder="BPM" min="1" max="300" />
-            <input id="saveEtiquetas" class="save-input" type="text"   placeholder="Etiquetas (separadas por coma)" />
-            <input id="saveNotas"     class="save-input" type="text"   placeholder="Notas adicionales" />
-        </div>
-        <button id="btnGuardar" class="btn-action" style="margin-top:1rem;">Guardar canción</button>
-        <p id="saveMsg" style="margin-top:0.5rem;font-size:0.85rem;text-align:center;"></p>
-    `;
+    // Reset fields and state
+    ['saveNombre', 'saveCantautor', 'saveBpm', 'saveEtiquetas', 'saveNotas'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+    });
+    const msg = document.getElementById('saveMsg');
+    const btn = document.getElementById('btnGuardar');
+    if (msg) msg.textContent = '';
+    if (btn) { btn.disabled = false; btn.textContent = 'Guardar canción'; }
 
-    document.getElementById('finalOutput').after(panel);
+    overlay.dataset.tonoOriginal = tonoOriginal;
+    overlay.setAttribute('aria-hidden', 'false');
+    overlay.classList.add('open');
+    document.getElementById('saveNombre')?.focus();
+}
 
-    document.getElementById('btnGuardar').onclick = async () => {
+function initSavePanelDrawer() {
+    const overlay = document.getElementById('savePanelOverlay');
+    if (!overlay) return;
+
+    document.getElementById('savePanelClose')?.addEventListener('click', closeSavePanel);
+
+    overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) closeSavePanel();
+    });
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') closeSavePanel();
+    });
+
+    document.getElementById('btnGuardar')?.addEventListener('click', async () => {
         const nombre    = document.getElementById('saveNombre').value.trim();
         const cantautor = document.getElementById('saveCantautor').value.trim();
         const msg       = document.getElementById('saveMsg');
+        const btn       = document.getElementById('btnGuardar');
 
         if (!nombre || !cantautor) {
             msg.style.color = 'var(--danger, #e55)';
@@ -211,24 +227,24 @@ function showSavePanel(tonoOriginal) {
         }
 
         try {
-            document.getElementById('btnGuardar').disabled = true;
+            btn.disabled = true;
             await API.crear({
                 nombre,
                 cantautor,
-                tonoOriginal: tonoOriginal,
+                tonoOriginal: overlay.dataset.tonoOriginal || '',
                 bpm: document.getElementById('saveBpm').value || null,
                 etiquetas: document.getElementById('saveEtiquetas').value,
                 notas: document.getElementById('saveNotas').value.trim()
             });
-            msg.style.color = 'var(--accent, #4c8)';
+            msg.style.color = 'var(--accent)';
             msg.textContent = '✅ Canción guardada en la biblioteca.';
-            document.getElementById('btnGuardar').textContent = 'Guardado';
+            btn.textContent = 'Guardado';
         } catch (err) {
             msg.style.color = 'var(--danger, #e55)';
             msg.textContent = `❌ ${err.message}`;
-            document.getElementById('btnGuardar').disabled = false;
+            btn.disabled = false;
         }
-    };
+    });
 }
 
 const toBase64 = file => new Promise(res => {

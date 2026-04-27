@@ -1,11 +1,12 @@
 import API from './api.js';
+import { closeOverlay } from './ui.js';
 
 let cancionesActuales = [];
 let cancionEnEdicion  = null;
 let cancionAEliminar  = null;
 
 // ── DOM refs ──────────────────────────────────────────
-const seccionLib       = document.getElementById('seccionBiblioteca');
+const modalBiblioteca  = document.getElementById('modalBiblioteca');
 const btnOcultar       = document.getElementById('btnOcultarBiblioteca');
 const listaCanciones   = document.getElementById('listaCanciones');
 
@@ -118,7 +119,7 @@ window._libEditar = function(id) {
 };
 
 function cerrarEditar() {
-    modalEditar.classList.remove('open');
+    closeOverlay(modalEditar, modalEditar.querySelector('.modal-card'));
     cancionEnEdicion = null;
     formEditar.reset();
 }
@@ -161,7 +162,7 @@ window._libEliminar = function(id) {
 };
 
 function cerrarConfirmar() {
-    modalConfirmar.classList.remove('open');
+    closeOverlay(modalConfirmar, modalConfirmar.querySelector('.modal-card'));
     cancionAEliminar = null;
 }
 
@@ -185,22 +186,33 @@ modalConfirmar.addEventListener('click', e => { if (e.target === modalConfirmar)
 
 // ESC cierra cualquier modal abierto
 document.addEventListener('keydown', e => {
-    if (e.key === 'Escape') { cerrarEditar(); cerrarConfirmar(); }
+    if (e.key === 'Escape') {
+        cerrarEditar();
+        cerrarConfirmar();
+        _cerrarBiblioteca();
+    }
 });
 
-// ── Toggle sección ─────────────────────────────────────
+// ── Biblioteca modal ────────────────────────────────────
+function _cerrarBiblioteca() {
+    closeOverlay(modalBiblioteca, modalBiblioteca.querySelector('.lib-modal-card'));
+}
+
 export function toggleLibrary() {
-    const visible = seccionLib.style.display !== 'none';
-    if (visible) {
-        seccionLib.style.display = 'none';
+    const isOpen = modalBiblioteca.classList.contains('open');
+    if (isOpen) {
+        _cerrarBiblioteca();
     } else {
-        seccionLib.style.display = 'block';
+        modalBiblioteca.classList.add('open');
+        modalBiblioteca.setAttribute('aria-hidden', 'false');
         cargarBiblioteca();
     }
 }
 
-btnOcultar.addEventListener('click', () => {
-    seccionLib.style.display = 'none';
+btnOcultar.addEventListener('click', _cerrarBiblioteca);
+
+modalBiblioteca.addEventListener('click', e => {
+    if (e.target === modalBiblioteca) _cerrarBiblioteca();
 });
 
 // ── Utilidades ─────────────────────────────────────────

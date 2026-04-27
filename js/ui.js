@@ -431,3 +431,29 @@ export function initSFM(onOpenLibrary, onSaveScan) {
 export function updateSFMSaveState(hasData) {
     document.getElementById('sfmSaveScan')?.classList.toggle('sfm-item--inactive', !hasData);
 }
+
+/**
+ * Graceful overlay close: adds `.closing` for the exit CSS state, waits for
+ * the opacity transitionend on `animatedEl`, then removes both `.open` and
+ * `.closing`. A 500ms fallback guards against transitionend never firing
+ * (e.g., element hidden, zero-duration transitions in reduced-motion envs).
+ */
+export function closeOverlay(overlay, animatedEl) {
+    if (!overlay || !overlay.classList.contains('open')) return;
+    overlay.setAttribute('aria-hidden', 'true');
+    overlay.classList.add('closing');
+
+    let done = false;
+    const cleanup = () => {
+        if (done) return;
+        done = true;
+        overlay.classList.remove('open', 'closing');
+        animatedEl?.removeEventListener('transitionend', onEnd);
+    };
+    const onEnd = (e) => {
+        if (e.target === animatedEl && e.propertyName === 'opacity') cleanup();
+    };
+
+    animatedEl?.addEventListener('transitionend', onEnd);
+    setTimeout(cleanup, 500);
+}

@@ -240,9 +240,11 @@ main {
     background: rgba(0, 0, 0, 0.45);
     backdrop-filter: blur(10px);
     opacity: 0; pointer-events: none;
-    transition: opacity 0.25s ease;
+    transition: opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: opacity;
 }
 .modal-overlay.open { opacity: 1; pointer-events: auto; }
+.modal-overlay.closing { opacity: 0; pointer-events: none; transition: opacity 0.22s cubic-bezier(0.4, 0, 0.2, 1); }
 
 .modal-card {
     background: var(--surface);
@@ -251,10 +253,17 @@ main {
     box-shadow: var(--card-shadow);
     padding: 1.75rem;
     width: min(420px, 90vw);
-    transform: translateY(20px) scale(0.97);
+    transform: scale(0.95);
     transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    will-change: transform, opacity;
 }
-.modal-overlay.open .modal-card { transform: translateY(0) scale(1); }
+.modal-overlay.open .modal-card { transform: scale(1); }
+.modal-overlay.closing .modal-card {
+    transform: scale(0.95);
+    opacity: 0;
+    transition: transform 0.22s cubic-bezier(0.4, 0, 0.2, 1),
+                opacity   0.2s  cubic-bezier(0.4, 0, 0.2, 1);
+}
 
 .modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.6rem; }
 .modal-title { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: var(--accent); }
@@ -699,16 +708,183 @@ html[data-chord-size="xl"] { font-size: 20px; }
 
 #closeAlertBtn { margin-top: 0.25rem; }
 
-/* ── Save Panel ─────────────────────────────────────── */
-.save-panel {
-    width: 100%;
+/* ── Save Panel — Apple-style Floating Card ─────────────────────────────── */
+.save-panel-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    background: rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: opacity;
+}
+
+.save-panel-overlay.open {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.save-panel-overlay.closing {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.save-panel-popup {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    width: 90%;
+    max-width: 400px;
+    max-height: 90vh;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    z-index: 10001;
     background: var(--surface);
+    backdrop-filter: blur(40px) saturate(220%);
+    -webkit-backdrop-filter: blur(40px) saturate(220%);
     border: 1px solid var(--border);
-    border-radius: 1.25rem;
-    padding: 1.5rem;
-    margin-top: 1.5rem;
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+    border-radius: 28px;
+    box-shadow: 0 32px 80px rgba(0, 0, 0, 0.45),
+                0 8px 32px rgba(0, 0, 0, 0.25),
+                inset 0 1px 0 rgba(255, 255, 255, 0.07);
+    padding: 1.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    transform: translate(-50%, -50%) scale(0.92);
+    opacity: 0;
+    transition: transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1),
+                opacity   0.28s cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: transform, opacity;
+}
+
+.save-panel-overlay.open .save-panel-popup {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+}
+
+.save-panel-overlay.closing .save-panel-popup {
+    transform: translate(-50%, -50%) translateX(100%);
+    opacity: 0;
+    transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1),
+                opacity   0.24s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.save-panel-popup::-webkit-scrollbar { width: 4px; }
+.save-panel-popup::-webkit-scrollbar-track { background: transparent; }
+.save-panel-popup::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+.save-panel-popup::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+
+/* Header */
+.save-panel-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+.save-panel-title-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+}
+
+.save-panel-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: -0.01em;
+}
+
+.save-panel-subtitle {
+    font-size: 0.74rem;
+    color: var(--text3);
+    line-height: 1.4;
+}
+
+.save-panel-close {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text3);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.72rem;
+    font-family: inherit;
+    flex-shrink: 0;
+    margin-top: 0.1rem;
+    transition: background 0.2s ease, color 0.2s ease, transform 0.25s ease;
+}
+
+.save-panel-close:hover {
+    background: var(--surface);
+    color: var(--text);
+    transform: scale(1.12) rotate(90deg);
+    border-color: var(--border);
+}
+
+/* Premium inputs */
+.save-panel-popup .save-input {
+    background: var(--surface2);
+    border: 1.5px solid transparent;
+    border-radius: 14px;
+    padding: 0.72rem 1rem;
+    font-size: 0.88rem;
+    color: var(--text);
+    font-family: inherit;
+    outline: none;
+    width: 100%;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+    box-sizing: border-box;
+}
+
+.save-panel-popup .save-input::placeholder { color: var(--text3); }
+
+.save-panel-popup .save-input:hover:not(:focus) {
+    border-color: var(--border);
+}
+
+.save-panel-popup .save-input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+    background: var(--surface);
+}
+
+/* Footer — compact centered action */
+.save-panel-footer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    padding-top: 0.25rem;
+}
+
+.save-panel-popup .btn-action {
+    min-width: 160px;
+    padding: 0.68rem 1.75rem;
+    font-size: 0.88rem;
+    border-radius: 18px;
+}
+
+.save-panel-popup .btn-action:active:not(:disabled) {
+    transform: scale(0.96);
+}
+
+@media (max-width: 480px) {
+    .save-panel-popup {
+        width: 94%;
+        border-radius: 24px;
+        padding: 1.5rem 1.25rem;
+        max-height: 85vh;
+    }
 }
 
 .save-fields {
@@ -954,6 +1130,88 @@ html[data-chord-size="xl"] { font-size: 20px; }
 .lib-btn-secondary {
     background: var(--surface2);
     color: var(--text2);
+}
+
+/* ── Biblioteca Modal (card específica) ─────────────────── */
+.lib-modal-card {
+    width: min(700px, 95vw);
+    max-height: 88vh;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    backdrop-filter: blur(48px) saturate(220%);
+    -webkit-backdrop-filter: blur(48px) saturate(220%);
+    box-shadow: var(--card-shadow), 0 0 0 1px var(--accent-glow),
+                inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    transform: scale(0.95);
+    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+                opacity   0.28s cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: transform, opacity;
+}
+
+.modal-overlay.open .lib-modal-card {
+    transform: scale(1);
+}
+
+.modal-overlay.closing .lib-modal-card {
+    transform: scale(0.95);
+    opacity: 0;
+    transition: transform 0.24s cubic-bezier(0.4, 0, 0.2, 1),
+                opacity   0.22s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.lib-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.4rem 1.75rem 1.2rem;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    background: linear-gradient(160deg, var(--accent-glow), transparent 70%);
+    border-radius: var(--radius) var(--radius) 0 0;
+}
+
+.lib-modal-title-group {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.lib-modal-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 11px;
+    background: var(--accent-glow);
+    border: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.05rem;
+    color: var(--accent);
+    flex-shrink: 0;
+    box-shadow: 0 2px 10px var(--accent-glow);
+}
+
+.lib-modal-body {
+    flex: 1;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 1.25rem 1.75rem 1.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.lib-modal-body::-webkit-scrollbar { width: 4px; }
+.lib-modal-body::-webkit-scrollbar-track { background: transparent; }
+.lib-modal-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+.lib-modal-body::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+
+@media (max-width: 560px) {
+    .lib-modal-card { max-height: 93vh; }
+    .lib-modal-header { padding: 1.1rem 1.25rem 1rem; }
+    .lib-modal-body { padding: 1rem 1.25rem 1.25rem; }
 }
 
 /* Notificaciones */

@@ -23,51 +23,6 @@
     </header>
 
     <main>
-        <!-- Sección Biblioteca (oculta por defecto) -->
-        <div id="seccionBiblioteca" style="display:none; width:100%;">
-            <div class="lib-panel">
-                <div class="lib-panel-header">
-                    <span class="section-title">Mis Canciones Guardadas</span>
-                    <button class="lib-close-btn" id="btnOcultarBiblioteca">✕</button>
-                </div>
-
-                <!-- Estadísticas -->
-                <div class="lib-stats">
-                    <div class="lib-stat"><span id="statTotal">0</span><small>Canciones</small></div>
-                    <div class="lib-stat"><span id="statArtistas">0</span><small>Artistas</small></div>
-                    <div class="lib-stat"><span id="statBpm">—</span><small>BPM prom.</small></div>
-                </div>
-
-                <!-- Búsqueda y filtros -->
-                <div class="lib-filtros">
-                    <input id="libBuscar" class="save-input" type="text" placeholder="Buscar por nombre, artista, etiqueta…">
-                    <div class="lib-filtros-row">
-                        <input id="libBpmMin" class="save-input" type="number" placeholder="BPM mín" min="1">
-                        <input id="libBpmMax" class="save-input" type="number" placeholder="BPM máx" max="300">
-                        <select id="libTono" class="save-input">
-                            <option value="">Todos los tonos</option>
-                            <option value="C">Do (C)</option>
-                            <option value="C#">Do# (C#)</option>
-                            <option value="D">Re (D)</option>
-                            <option value="D#">Re# (D#)</option>
-                            <option value="E">Mi (E)</option>
-                            <option value="F">Fa (F)</option>
-                            <option value="F#">Fa# (F#)</option>
-                            <option value="G">Sol (G)</option>
-                            <option value="G#">Sol# (G#)</option>
-                            <option value="A">La (A)</option>
-                            <option value="A#">La# (A#)</option>
-                            <option value="B">Si (B)</option>
-                        </select>
-                        <button id="libLimpiar" class="lib-btn lib-btn-secondary">Limpiar</button>
-                    </div>
-                </div>
-
-                <!-- Lista -->
-                <div id="listaCanciones" class="lib-lista"></div>
-            </div>
-        </div>
-
         <div class="upload-zone" id="dropZone">
             <input type="file" id="fileInput" accept="image/*,application/pdf,.txt,.csv,.json" multiple style="display: none;">
 
@@ -234,6 +189,56 @@
         </div>
     </div>
 
+    <!-- Modal: Biblioteca -->
+    <div id="modalBiblioteca" class="modal-overlay" aria-hidden="true">
+        <div class="modal-card lib-modal-card" role="dialog" aria-labelledby="libModalTitle">
+            <div class="lib-modal-header">
+                <div class="lib-modal-title-group">
+                    <span class="lib-modal-icon">♫</span>
+                    <span class="modal-title" id="libModalTitle">Mis Canciones</span>
+                </div>
+                <button class="modal-close" id="btnOcultarBiblioteca" aria-label="Cerrar biblioteca">✕</button>
+            </div>
+
+            <div class="lib-modal-body">
+                <!-- Estadísticas -->
+                <div class="lib-stats">
+                    <div class="lib-stat"><span id="statTotal">0</span><small>Canciones</small></div>
+                    <div class="lib-stat"><span id="statArtistas">0</span><small>Artistas</small></div>
+                    <div class="lib-stat"><span id="statBpm">—</span><small>BPM prom.</small></div>
+                </div>
+
+                <!-- Búsqueda y filtros -->
+                <div class="lib-filtros">
+                    <input id="libBuscar" class="save-input" type="text" placeholder="Buscar por nombre, artista, etiqueta…">
+                    <div class="lib-filtros-row">
+                        <input id="libBpmMin" class="save-input" type="number" placeholder="BPM mín" min="1">
+                        <input id="libBpmMax" class="save-input" type="number" placeholder="BPM máx" max="300">
+                        <select id="libTono" class="save-input">
+                            <option value="">Todos los tonos</option>
+                            <option value="C">Do (C)</option>
+                            <option value="C#">Do# (C#)</option>
+                            <option value="D">Re (D)</option>
+                            <option value="D#">Re# (D#)</option>
+                            <option value="E">Mi (E)</option>
+                            <option value="F">Fa (F)</option>
+                            <option value="F#">Fa# (F#)</option>
+                            <option value="G">Sol (G)</option>
+                            <option value="G#">Sol# (G#)</option>
+                            <option value="A">La (A)</option>
+                            <option value="A#">La# (A#)</option>
+                            <option value="B">Si (B)</option>
+                        </select>
+                        <button id="libLimpiar" class="lib-btn lib-btn-secondary">Limpiar</button>
+                    </div>
+                </div>
+
+                <!-- Lista -->
+                <div id="listaCanciones" class="lib-lista"></div>
+            </div>
+        </div>
+    </div>
+
     <!-- Smart Floating Menu -->
     <div id="sfmGroup" class="sfm-group">
         <div class="sfm-menu" id="sfmMenu" role="menu">
@@ -249,6 +254,30 @@
         <button class="sfm-trigger" id="sfmTrigger" aria-label="Acciones rápidas" aria-expanded="false">
             <span class="sfm-trigger-icon">+</span>
         </button>
+    </div>
+
+    <!-- Save Panel — Apple-style Floating Card -->
+    <div id="savePanelOverlay" class="save-panel-overlay" aria-hidden="true">
+        <div id="savePanelDrawer" class="save-panel-popup" role="dialog" aria-labelledby="savePanelTitle">
+            <div class="save-panel-header">
+                <div class="save-panel-title-group">
+                    <span id="savePanelTitle" class="save-panel-title">Guardar canción</span>
+                    <span class="save-panel-subtitle">Añade los detalles para tu biblioteca</span>
+                </div>
+                <button class="save-panel-close" id="savePanelClose" aria-label="Cerrar">✕</button>
+            </div>
+            <div class="save-fields">
+                <input id="saveNombre"    class="save-input" type="text"   placeholder="Nombre de la canción *" />
+                <input id="saveCantautor" class="save-input" type="text"   placeholder="Cantautor *" />
+                <input id="saveBpm"       class="save-input" type="number" placeholder="BPM" min="1" max="300" />
+                <input id="saveEtiquetas" class="save-input" type="text"   placeholder="Etiquetas (separadas por coma)" />
+                <textarea id="saveNotas"  class="save-input" rows="3"      placeholder="Notas adicionales" style="resize:vertical;"></textarea>
+            </div>
+            <div class="save-panel-footer">
+                <button id="btnGuardar" class="btn-action">Guardar canción</button>
+                <p id="saveMsg" style="font-size:0.82rem;text-align:center;min-height:1.2em;"></p>
+            </div>
+        </div>
     </div>
 
     <script type="module" src="js/main.js"></script>
