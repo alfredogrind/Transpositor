@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#667eea">
+    <title>Biblioteca — Transpositor</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/library.css">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="lib-shell">
+
+        <!-- ── Sidebar ───────────────────────────────── -->
+        <aside class="lib-sidebar" id="libSidebar">
+            <div class="lib-sidebar-brand">
+                <span class="lib-brand-icon">♫</span>
+                <span class="lib-brand-name">Transport</span>
+            </div>
+
+            <nav class="lib-nav" id="libNav">
+                <button class="lib-nav-item active" data-section="canciones">
+                    <span class="lib-nav-icon">♪</span>Canciones
+                </button>
+                <button class="lib-nav-item" data-section="favoritos">
+                    <span class="lib-nav-icon">♥</span>Favoritos
+                </button>
+                <button class="lib-nav-item" data-section="setlists">
+                    <span class="lib-nav-icon">≡</span>Setlists
+                </button>
+            </nav>
+
+            <a href="index.html" class="lib-back-btn">← Transpositor</a>
+        </aside>
+
+        <!-- Mobile sidebar overlay -->
+        <div class="lib-sidebar-overlay" id="libSidebarOverlay"></div>
+
+        <!-- ── Main ──────────────────────────────────── -->
+        <div class="lib-main">
+
+            <!-- Topbar -->
+            <div class="lib-topbar">
+                <button class="lib-menu-btn" id="libMenuBtn" aria-label="Abrir menú">
+                    <span></span><span></span><span></span>
+                </button>
+                <h1 class="lib-page-title" id="libPageTitle">Mis Canciones</h1>
+                <div class="lib-topbar-right">
+                    <button class="lib-theme-btn" id="libThemeBtn" title="Cambiar tema">
+                        <span class="lib-icon-sun">☀</span>
+                        <span class="lib-icon-moon">☽</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Stats row -->
+            <div class="lib-stats-row">
+                <div class="lib-stat-card">
+                    <span class="lib-stat-val" id="statTotal"><span class="lib-skeleton lib-skeleton-text"></span></span>
+                    <span class="lib-stat-lbl">Canciones</span>
+                </div>
+                <div class="lib-stat-card">
+                    <span class="lib-stat-val" id="statArtistas"><span class="lib-skeleton lib-skeleton-text"></span></span>
+                    <span class="lib-stat-lbl">Artistas</span>
+                </div>
+                <div class="lib-stat-card">
+                    <span class="lib-stat-val" id="statBpm"><span class="lib-skeleton lib-skeleton-text"></span></span>
+                    <span class="lib-stat-lbl">BPM prom.</span>
+                </div>
+                <div class="lib-stat-card">
+                    <span class="lib-stat-val" id="statTono"><span class="lib-skeleton lib-skeleton-text"></span></span>
+                    <span class="lib-stat-lbl">Tono frec.</span>
+                </div>
+            </div>
+
+            <!-- Setlists section (visible in "setlists" view) -->
+            <div class="lib-setlists-section" id="libSetlistsSection" style="display:none;">
+                <div class="lib-setlists-header">
+                    <h2 class="lib-section-title">Setlists</h2>
+                    <button class="lib-btn-accent" id="btnNewSetlist">+ Nuevo setlist</button>
+                </div>
+                <div class="lib-setlists-grid" id="libSetlistsGrid"></div>
+                <div class="lib-setlist-songs-header" id="libSetlistSongsHeader" style="display:none;">
+                    <h3 class="lib-section-title" id="libSetlistSongsTitle"></h3>
+                    <button class="lib-btn-ghost" id="btnDeselectSetlist">✕ Deseleccionar</button>
+                </div>
+            </div>
+
+            <!-- Songs content -->
+            <div class="lib-content-section" id="libContentSection">
+                <!-- Toolbar -->
+                <div class="lib-toolbar">
+                    <div class="lib-search-wrap">
+                        <input type="search" id="libSearch" class="lib-search-input"
+                               placeholder="Buscar por nombre, artista, etiqueta…" autocomplete="off">
+                    </div>
+                    <div class="lib-filter-group">
+                        <select id="libFilterKey" class="lib-filter-select">
+                            <option value="">Todos los tonos</option>
+                            <option value="C">Do (C)</option>
+                            <option value="C#">Do# (C#)</option>
+                            <option value="D">Re (D)</option>
+                            <option value="D#">Re# (D#)</option>
+                            <option value="E">Mi (E)</option>
+                            <option value="F">Fa (F)</option>
+                            <option value="F#">Fa# (F#)</option>
+                            <option value="G">Sol (G)</option>
+                            <option value="G#">Sol# (G#)</option>
+                            <option value="A">La (A)</option>
+                            <option value="A#">La# (A#)</option>
+                            <option value="B">Si (B)</option>
+                        </select>
+                        <select id="libFilterSort" class="lib-filter-select">
+                            <option value="recent">Recientes</option>
+                            <option value="alpha">A → Z</option>
+                        </select>
+                    </div>
+                    <div class="lib-view-btns">
+                        <button class="lib-view-btn" data-mode="table" title="Vista tabla">≡</button>
+                        <button class="lib-view-btn" data-mode="grid"  title="Vista cuadrícula">⊞</button>
+                    </div>
+                </div>
+
+                <!-- Songs list (rendered by JS) -->
+                <div id="libSongsList"></div>
+            </div>
+
+        </div><!-- /lib-main -->
+    </div><!-- /lib-shell -->
+
+    <!-- ── Edit Modal ──────────────────────────────── -->
+    <div id="libModalEditar" class="modal-overlay" aria-hidden="true">
+        <div class="modal-card" role="dialog" style="max-width:480px;">
+            <div class="modal-header">
+                <span class="modal-title">Editar Canción</span>
+                <button class="modal-close" id="libBtnCerrarEditar" aria-label="Cerrar">✕</button>
+            </div>
+            <form id="libFormEditar" style="padding:1.25rem;display:flex;flex-direction:column;gap:0.75rem;">
+                <input id="libEditCantautor" class="save-input" type="text" placeholder="Cantautor *" required>
+                <input id="libEditNombre"    class="save-input" type="text" placeholder="Nombre de la canción *" required>
+                <select id="libEditTono" class="save-input">
+                    <option value="">Tono original…</option>
+                    <option value="C">Do (C)</option><option value="C#">Do# (C#)</option>
+                    <option value="D">Re (D)</option><option value="D#">Re# (D#)</option>
+                    <option value="E">Mi (E)</option><option value="F">Fa (F)</option>
+                    <option value="F#">Fa# (F#)</option><option value="G">Sol (G)</option>
+                    <option value="G#">Sol# (G#)</option><option value="A">La (A)</option>
+                    <option value="A#">La# (A#)</option><option value="B">Si (B)</option>
+                </select>
+                <input id="libEditBpm"       class="save-input" type="number" placeholder="BPM" min="1" max="300">
+                <input id="libEditEtiquetas" class="save-input" type="text" placeholder="Etiquetas (separadas por coma)">
+                <textarea id="libEditNotas"  class="save-input" rows="3" placeholder="Notas adicionales" style="resize:vertical;"></textarea>
+                <div style="display:flex;gap:0.6rem;">
+                    <button type="submit"  class="btn-action" style="flex:1;">Guardar cambios</button>
+                    <button type="button" id="libBtnCerrarEditar2" class="btn-action" style="flex:1;background:var(--surface2);">Cancelar</button>
+                </div>
+                <p id="libEditMsg" style="font-size:0.82rem;text-align:center;min-height:1em;color:var(--danger,#e55);"></p>
+            </form>
+        </div>
+    </div>
+
+    <!-- ── Delete Confirm Modal ─────────────────────── -->
+    <div id="libModalConfirmar" class="modal-overlay" aria-hidden="true">
+        <div class="modal-card alert-modal-card" role="alertdialog" style="max-width:380px;">
+            <div class="modal-header">
+                <span class="modal-title">Confirmar eliminación</span>
+            </div>
+            <div class="alert-icon" style="color:#e55;">!</div>
+            <p class="modal-desc">¿Eliminar esta canción de la biblioteca?</p>
+            <p class="modal-desc" id="libConfirmarNombre" style="font-weight:600;color:var(--accent);"></p>
+            <div style="display:flex;gap:0.6rem;padding:0 1.25rem 1.25rem;">
+                <button id="libBtnConfirmarDel" class="btn-action" style="flex:1;background:#c0392b;">Eliminar</button>
+                <button id="libBtnCancelarDel"  class="btn-action" style="flex:1;background:var(--surface2);">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── New Setlist Modal ────────────────────────── -->
+    <div id="libModalSetlist" class="modal-overlay" aria-hidden="true">
+        <div class="modal-card" role="dialog" style="max-width:400px;">
+            <div class="modal-header">
+                <span class="modal-title">Nuevo Setlist</span>
+                <button class="modal-close" id="libBtnCerrarSetlist" aria-label="Cerrar">✕</button>
+            </div>
+            <form id="libFormSetlist" style="padding:1.25rem;display:flex;flex-direction:column;gap:0.75rem;">
+                <input id="libSetlistNombre" class="save-input" type="text" placeholder="Nombre del setlist *" required>
+                <textarea id="libSetlistDesc" class="save-input" rows="2" placeholder="Descripción (opcional)" style="resize:vertical;"></textarea>
+                <button type="submit" class="btn-action">Crear setlist</button>
+                <p id="libSetlistMsg" style="font-size:0.82rem;text-align:center;min-height:1em;color:var(--danger,#e55);"></p>
+            </form>
+        </div>
+    </div>
+
+    <!-- ── Add to Setlist Modal ─────────────────────── -->
+    <div id="libModalAddSetlist" class="modal-overlay" aria-hidden="true">
+        <div class="modal-card" role="dialog" style="max-width:380px;">
+            <div class="modal-header">
+                <span class="modal-title">Añadir a setlist</span>
+                <button class="modal-close" id="libBtnCerrarAddSetlist" aria-label="Cerrar">✕</button>
+            </div>
+            <div style="padding:1.25rem;display:flex;flex-direction:column;gap:0.75rem;">
+                <p class="modal-desc">Añadir <strong id="libAddSongName"></strong> a:</p>
+                <div id="libSetlistPickList" style="display:flex;flex-direction:column;gap:0.5rem;max-height:280px;overflow-y:auto;"></div>
+                <p id="libAddSetlistMsg" style="font-size:0.82rem;text-align:center;min-height:1em;color:var(--accent);"></p>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="js/library-page.js"></script>
+</body>
+</html>

@@ -3,6 +3,7 @@
   "outputDirectory": ".",
   "framework": null,
   "rewrites": [
+    { "source": "/library.html", "destination": "/library.html" },
     { "source": "/(.*)", "destination": "/index.html" }
   ],
   "headers": [

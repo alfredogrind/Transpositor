@@ -3,189 +3,151 @@ const router = express.Router();
 const { getDB } = require('../database');
 const { validarCancion } = require('../middleware/validation');
 
+function formatCancion(c) {
+    return { ...c, etiquetas: JSON.parse(c.etiquetas || '[]') };
+}
+
+// GET / — unified list with filters, sort, pagination
 router.get('/', (req, res, next) => {
     try {
         const db = getDB();
-        const canciones = db.prepare('SELECT * FROM canciones ORDER BY created_at DESC').all();
+        const {
+            q = '', key = '', tag = '', sort = 'recent',
+            page = '1', limit = '100', favoritos = ''
+        } = req.query;
 
-        const cancionesFormateadas = canciones.map(c => ({
-            ...c,
-            etiquetas: JSON.parse(c.etiquetas || '[]')
-        }));
+        const pageNum  = Math.max(1, parseInt(page) || 1);
+        const limitNum = Math.min(200, Math.max(1, parseInt(limit) || 100));
+        const offset   = (pageNum - 1) * limitNum;
 
-        res.json({
-            success: true,
-            data: cancionesFormateadas,
-            total: cancionesFormateadas.length
-        });
-    } catch (error) {
-        next(error);
-    }
-});
+        let base = 'FROM canciones c';
+        if (favoritos === '1') base += ' INNER JOIN favoritos f ON f.cancion_id = c.id';
 
-router.get('/search', (req, res, next) => {
-    try {
-        const { q = '', bpmMin, bpmMax, tono } = req.query;
-        const db = getDB();
-
-        let query = 'SELECT * FROM canciones WHERE 1=1';
+        const conditions = [];
         const params = [];
 
-        if (q && q.trim()) {
-            query += ` AND (cantautor LIKE ? OR nombre LIKE ? OR etiquetas LIKE ?)`;
-            const searchTerm = `%${q.trim()}%`;
-            params.push(searchTerm, searchTerm, searchTerm);
+        if (q.trim()) {
+            conditions.push('(c.cantautor LIKE ? OR c.nombre LIKE ? OR c.etiquetas LIKE ?)');
+            const t = `%${q.trim()}%`;
+            params.push(t, t, t);
+        }
+        if (key.trim()) {
+            conditions.push('c.tono_original = ?');
+            params.push(key.trim());
+        }
+        if (tag.trim()) {
+            conditions.push('c.etiquetas LIKE ?');
+            params.push(`%"${tag.trim()}"%`);
         }
 
-        if (bpmMin) {
-            query += ' AND bpm >= ?';
-            params.push(parseInt(bpmMin));
-        }
+        const where = conditions.length ? ' WHERE ' + conditions.join(' AND ') : '';
+        const order = sort === 'alpha' ? ' ORDER BY c.nombre ASC' : ' ORDER BY c.created_at DESC';
 
-        if (bpmMax) {
-            query += ' AND bpm <= ?';
-            params.push(parseInt(bpmMax));
-        }
+        const total = db.prepare(`SELECT COUNT(*) as n ${base}${where}`).get(...params).n;
+        const rows  = db.prepare(`SELECT c.* ${base}${where}${order} LIMIT ? OFFSET ?`)
+                        .all(...params, limitNum, offset);
 
-        if (tono && tono !== 'null') {
-            query += ' AND tono_original = ?';
-            params.push(tono);
-        }
-
-        query += ' ORDER BY created_at DESC';
-
-        const resultados = db.prepare(query).all(...params);
-
-        const cancionesFormateadas = resultados.map(c => ({
-            ...c,
-            etiquetas: JSON.parse(c.etiquetas || '[]')
-        }));
-
-        res.json({
-            success: true,
-            data: cancionesFormateadas,
-            total: cancionesFormateadas.length
-        });
-    } catch (error) {
-        next(error);
-    }
+        res.json({ success: true, data: rows.map(formatCancion), total, page: pageNum, limit: limitNum });
+    } catch (err) { next(err); }
 });
 
+// GET /stats — extended stats
 router.get('/stats', (req, res, next) => {
     try {
         const db = getDB();
 
-        const totalCanciones = db.prepare('SELECT COUNT(*) as count FROM canciones').get();
-        const totalCantautores = db.prepare('SELECT COUNT(DISTINCT cantautor) as count FROM canciones').get();
-        const bpmPromedio = db.prepare('SELECT AVG(bpm) as promedio FROM canciones WHERE bpm > 0').get();
+        const totalCanciones   = db.prepare('SELECT COUNT(*) as n FROM canciones').get().n;
+        const totalCantautores = db.prepare('SELECT COUNT(DISTINCT cantautor) as n FROM canciones').get().n;
+        const bpmRow           = db.prepare('SELECT AVG(bpm) as p FROM canciones WHERE bpm > 0').get();
+        const tonoRow          = db.prepare(
+            'SELECT tono_original, COUNT(*) as n FROM canciones WHERE tono_original IS NOT NULL GROUP BY tono_original ORDER BY n DESC LIMIT 1'
+        ).get();
+        const deltaEsteMes     = db.prepare(
+            "SELECT COUNT(*) as n FROM canciones WHERE strftime('%Y-%m', created_at) = strftime('%Y-%m', 'now')"
+        ).get().n;
+
+        let totalSetlists = 0;
+        try { totalSetlists = db.prepare('SELECT COUNT(*) as n FROM setlists').get().n; } catch (_) {}
 
         res.json({
             success: true,
             data: {
-                totalCanciones: totalCanciones.count,
-                totalCantautores: totalCantautores.count,
-                bpmPromedio: Math.round(bpmPromedio.promedio || 0)
+                totalCanciones,
+                totalCantautores,
+                bpmPromedio: Math.round(bpmRow?.p || 0),
+                tonoMasFrecuente: tonoRow?.tono_original || null,
+                tonoMasFrecuenteCount: tonoRow?.n || 0,
+                deltaEsteMes,
+                totalSetlists,
             }
         });
-    } catch (error) {
-        next(error);
-    }
+    } catch (err) { next(err); }
 });
 
+// POST / — create
 router.post('/', validarCancion, (req, res, next) => {
     try {
-        const { cantautor, nombre, tono_original, bpm, etiquetas, notas } = req.body;
+        const { cantautor, nombre, tono_original, bpm, etiquetas, notas,
+                tono_destino, cejilla, tipo_notacion, letra_acordes } = req.body;
         const db = getDB();
 
-        const stmt = db.prepare(`
-            INSERT INTO canciones (cantautor, nombre, tono_original, bpm, etiquetas, notas)
-            VALUES (?, ?, ?, ?, ?, ?)
-        `);
-
-        const result = stmt.run(
-            cantautor.trim(),
-            nombre.trim(),
-            tono_original || null,
-            bpm || null,
-            JSON.stringify(etiquetas || []),
-            notas?.trim() || null
+        const r = db.prepare(`
+            INSERT INTO canciones
+                (cantautor, nombre, tono_original, bpm, etiquetas, notas,
+                 tono_destino, cejilla, tipo_notacion, letra_acordes)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `).run(
+            cantautor.trim(), nombre.trim(),
+            tono_original || null, bpm || null,
+            JSON.stringify(Array.isArray(etiquetas) ? etiquetas : []),
+            notas?.trim() || null,
+            tono_destino || null, cejilla || null,
+            tipo_notacion || 'latin', letra_acordes || null
         );
 
-        res.status(201).json({
-            success: true,
-            message: 'Canción creada exitosamente',
-            data: {
-                id: result.lastInsertRowid,
-                cantautor,
-                nombre,
-                tono_original,
-                bpm,
-                etiquetas,
-                notas
-            }
-        });
-    } catch (error) {
-        next(error);
-    }
+        res.status(201).json({ success: true, data: { id: r.lastInsertRowid } });
+    } catch (err) { next(err); }
 });
 
+// PUT /:id — update
 router.put('/:id', validarCancion, (req, res, next) => {
     try {
-        const { id } = req.params;
-        const { cantautor, nombre, tono_original, bpm, etiquetas, notas } = req.body;
+        const { cantautor, nombre, tono_original, bpm, etiquetas, notas,
+                tono_destino, cejilla, tipo_notacion, letra_acordes } = req.body;
         const db = getDB();
 
-        const existe = db.prepare('SELECT id FROM canciones WHERE id = ?').get(id);
-        if (!existe) {
-            return res.status(404).json({ success: false, error: 'Canción no encontrada' });
-        }
+        const existe = db.prepare('SELECT id FROM canciones WHERE id = ?').get(req.params.id);
+        if (!existe) return res.status(404).json({ success: false, error: 'Canción no encontrada' });
 
-        const stmt = db.prepare(`
+        db.prepare(`
             UPDATE canciones
             SET cantautor = ?, nombre = ?, tono_original = ?, bpm = ?,
-                etiquetas = ?, notas = ?, updated_at = CURRENT_TIMESTAMP
+                etiquetas = ?, notas = ?, tono_destino = ?, cejilla = ?,
+                tipo_notacion = ?, letra_acordes = ?, updated_at = CURRENT_TIMESTAMP
             WHERE id = ?
-        `);
-
-        stmt.run(
-            cantautor.trim(),
-            nombre.trim(),
-            tono_original || null,
-            bpm || null,
-            JSON.stringify(etiquetas || []),
+        `).run(
+            cantautor.trim(), nombre.trim(),
+            tono_original || null, bpm || null,
+            JSON.stringify(Array.isArray(etiquetas) ? etiquetas : []),
             notas?.trim() || null,
-            id
+            tono_destino || null, cejilla || null,
+            tipo_notacion || 'latin', letra_acordes || null,
+            req.params.id
         );
 
-        res.json({
-            success: true,
-            message: 'Canción actualizada exitosamente',
-            data: { id, cantautor, nombre, tono_original, bpm, etiquetas, notas }
-        });
-    } catch (error) {
-        next(error);
-    }
+        res.json({ success: true });
+    } catch (err) { next(err); }
 });
 
+// DELETE /:id
 router.delete('/:id', (req, res, next) => {
     try {
-        const { id } = req.params;
         const db = getDB();
-
-        const existe = db.prepare('SELECT id FROM canciones WHERE id = ?').get(id);
-        if (!existe) {
-            return res.status(404).json({ success: false, error: 'Canción no encontrada' });
-        }
-
-        db.prepare('DELETE FROM canciones WHERE id = ?').run(id);
-
-        res.json({
-            success: true,
-            message: 'Canción eliminada exitosamente'
-        });
-    } catch (error) {
-        next(error);
-    }
+        const existe = db.prepare('SELECT id FROM canciones WHERE id = ?').get(req.params.id);
+        if (!existe) return res.status(404).json({ success: false, error: 'Canción no encontrada' });
+        db.prepare('DELETE FROM canciones WHERE id = ?').run(req.params.id);
+        res.json({ success: true });
+    } catch (err) { next(err); }
 });
 
 module.exports = router;

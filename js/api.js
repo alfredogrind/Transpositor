@@ -3,114 +3,121 @@ const API_URL = window.location.hostname === 'localhost' || window.location.host
     : 'https://TU_BACKEND.up.railway.app/api';
 
 class API {
-    static async obtenerTodas() {
-        try {
-            const response = await fetch(`${API_URL}/canciones`);
-            if (!response.ok) throw new Error(`Error: ${response.status}`);
-            const json = await response.json();
-            return json.data || [];
-        } catch (error) {
-            console.error('❌ Error al obtener canciones:', error);
-            throw error;
-        }
+    static async _fetch(path, opts = {}) {
+        const res = await fetch(`${API_URL}${path}`, opts);
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.error || `Error ${res.status}`);
+        return json;
     }
 
-    static async buscar(termino = '', filtros = {}) {
-        try {
-            const params = new URLSearchParams({
-                q: termino,
-                bpmMin: filtros.bpmMin || '',
-                bpmMax: filtros.bpmMax || '',
-                tono: filtros.tono || ''
-            });
-            const response = await fetch(`${API_URL}/canciones/search?${params}`);
-            if (!response.ok) throw new Error(`Error: ${response.status}`);
-            const json = await response.json();
-            return json.data || [];
-        } catch (error) {
-            console.error('❌ Error en búsqueda:', error);
-            throw error;
-        }
+    // ── Canciones ──────────────────────────────────────
+    static async listar(params = {}) {
+        const qs = new URLSearchParams(
+            Object.fromEntries(Object.entries(params).filter(([, v]) => v !== '' && v != null))
+        );
+        const json = await API._fetch(`/canciones?${qs}`);
+        return json.data || [];
+    }
+
+    static async obtenerTodas() {
+        return API.listar();
     }
 
     static async obtenerStats() {
         try {
-            const response = await fetch(`${API_URL}/canciones/stats`);
-            if (!response.ok) throw new Error(`Error: ${response.status}`);
-            const json = await response.json();
-            return json.data || { totalCanciones: 0, totalCantautores: 0, bpmPromedio: 0 };
-        } catch (error) {
-            console.error('❌ Error al obtener stats:', error);
-            return { totalCanciones: 0, totalCantautores: 0, bpmPromedio: 0 };
-        }
+            const json = await API._fetch('/canciones/stats');
+            return json.data || {};
+        } catch { return {}; }
     }
 
     static async crear(datos) {
-        try {
-            const response = await fetch(`${API_URL}/canciones`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    cantautor: datos.cantautor,
-                    nombre: datos.nombre,
-                    tono_original: datos.tonoOriginal,
-                    bpm: datos.bpm ? parseInt(datos.bpm) : null,
-                    etiquetas: Array.isArray(datos.etiquetas)
-                        ? datos.etiquetas
-                        : (datos.etiquetas || '').split(',').map(e => e.trim()).filter(e => e),
-                    notas: datos.notas
-                })
-            });
-            if (!response.ok) {
-                const json = await response.json();
-                throw new Error(json.error || `Error: ${response.status}`);
-            }
-            return (await response.json()).data;
-        } catch (error) {
-            console.error('❌ Error al crear:', error);
-            throw error;
-        }
+        const json = await API._fetch('/canciones', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                cantautor:    datos.cantautor,
+                nombre:       datos.nombre,
+                tono_original: datos.tonoOriginal,
+                bpm:          datos.bpm ? parseInt(datos.bpm) : null,
+                etiquetas:    Array.isArray(datos.etiquetas)
+                                ? datos.etiquetas
+                                : (datos.etiquetas || '').split(',').map(e => e.trim()).filter(Boolean),
+                notas:        datos.notas,
+            })
+        });
+        return json.data;
     }
 
     static async actualizar(id, datos) {
-        try {
-            const response = await fetch(`${API_URL}/canciones/${id}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    cantautor: datos.cantautor,
-                    nombre: datos.nombre,
-                    tono_original: datos.tonoOriginal,
-                    bpm: datos.bpm ? parseInt(datos.bpm) : null,
-                    etiquetas: Array.isArray(datos.etiquetas)
-                        ? datos.etiquetas
-                        : (datos.etiquetas || '').split(',').map(e => e.trim()).filter(e => e),
-                    notas: datos.notas
-                })
-            });
-            if (!response.ok) {
-                const json = await response.json();
-                throw new Error(json.error || `Error: ${response.status}`);
-            }
-            return (await response.json()).data;
-        } catch (error) {
-            console.error('❌ Error al actualizar:', error);
-            throw error;
-        }
+        const json = await API._fetch(`/canciones/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                cantautor:    datos.cantautor,
+                nombre:       datos.nombre,
+                tono_original: datos.tonoOriginal,
+                bpm:          datos.bpm ? parseInt(datos.bpm) : null,
+                etiquetas:    Array.isArray(datos.etiquetas)
+                                ? datos.etiquetas
+                                : (datos.etiquetas || '').split(',').map(e => e.trim()).filter(Boolean),
+                notas:        datos.notas,
+            })
+        });
+        return json.data;
     }
 
     static async eliminar(id) {
+        await API._fetch(`/canciones/${id}`, { method: 'DELETE' });
+        return true;
+    }
+
+    // ── Favoritos ─────────────────────────────────────
+    static async obtenerFavoritos() {
         try {
-            const response = await fetch(`${API_URL}/canciones/${id}`, { method: 'DELETE' });
-            if (!response.ok) {
-                const json = await response.json();
-                throw new Error(json.error || `Error: ${response.status}`);
-            }
-            return true;
-        } catch (error) {
-            console.error('❌ Error al eliminar:', error);
-            throw error;
-        }
+            const json = await API._fetch('/favoritos');
+            return json.data || [];
+        } catch { return []; }
+    }
+
+    static async toggleFavorito(id) {
+        const json = await API._fetch(`/favoritos/${id}`, { method: 'POST' });
+        return json.favorito;
+    }
+
+    // ── Setlists ──────────────────────────────────────
+    static async obtenerSetlists() {
+        const json = await API._fetch('/setlists');
+        return json.data || [];
+    }
+
+    static async obtenerSetlist(id) {
+        const json = await API._fetch(`/setlists/${id}`);
+        return json.data;
+    }
+
+    static async crearSetlist(datos) {
+        const json = await API._fetch('/setlists', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(datos)
+        });
+        return json.data;
+    }
+
+    static async agregarASetlist(setlistId, cancionId) {
+        await API._fetch(`/setlists/${setlistId}/canciones`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ cancion_id: cancionId })
+        });
+    }
+
+    static async eliminarDeSetlist(setlistId, cancionId) {
+        await API._fetch(`/setlists/${setlistId}/canciones/${cancionId}`, { method: 'DELETE' });
+    }
+
+    static async eliminarSetlist(id) {
+        await API._fetch(`/setlists/${id}`, { method: 'DELETE' });
     }
 }
 

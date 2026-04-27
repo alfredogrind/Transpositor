@@ -1,0 +1,592 @@
+/* ── Layout override (styles.css centers body; library uses sidebar layout) ── */
+body {
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    padding: 0;
+    min-height: 100vh;
+}
+
+/* ── Shell ─────────────────────────────────────────── */
+.lib-shell {
+    display: flex;
+    width: 100%;
+    min-height: 100vh;
+}
+
+/* ── Sidebar ───────────────────────────────────────── */
+.lib-sidebar {
+    width: 220px;
+    flex-shrink: 0;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    padding: 1.5rem 0.75rem;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+    z-index: 100;
+    transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.lib-sidebar-brand {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.25rem 0.75rem 1rem;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 0.5rem;
+}
+
+.lib-brand-icon { font-size: 1.4rem; color: var(--accent); }
+.lib-brand-name {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: -0.02em;
+}
+
+/* ── Sidebar Nav ───────────────────────────────────── */
+.lib-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    flex: 1;
+}
+
+.lib-nav-item {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.6rem 0.75rem;
+    border-radius: 12px;
+    background: none;
+    border: none;
+    color: var(--text2);
+    font-size: 0.88rem;
+    font-weight: 500;
+    font-family: inherit;
+    cursor: pointer;
+    text-align: left;
+    transition: background 0.2s, color 0.2s;
+    width: 100%;
+}
+
+.lib-nav-item:hover { background: var(--surface2); color: var(--text); }
+.lib-nav-item.active { background: var(--accent); color: #fff; }
+
+.lib-nav-icon { font-size: 1rem; width: 1.2rem; text-align: center; }
+
+.lib-back-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.6rem 0.75rem;
+    color: var(--text3);
+    text-decoration: none;
+    font-size: 0.82rem;
+    border-radius: 12px;
+    transition: background 0.2s, color 0.2s;
+    margin-top: 0.5rem;
+}
+.lib-back-btn:hover { background: var(--surface2); color: var(--text); }
+
+/* ── Mobile sidebar overlay ────────────────────────── */
+.lib-sidebar-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    z-index: 99;
+    backdrop-filter: blur(2px);
+}
+.lib-sidebar-overlay.open { display: block; }
+
+/* ── Main ──────────────────────────────────────────── */
+.lib-main {
+    flex: 1;
+    min-width: 0;
+    background: var(--bg);
+    padding: 2rem 2.5rem;
+    overflow-y: auto;
+}
+
+/* ── Topbar ────────────────────────────────────────── */
+.lib-topbar {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.75rem;
+}
+
+.lib-menu-btn {
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    gap: 4px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    cursor: pointer;
+    padding: 0.5rem 0.6rem;
+    flex-shrink: 0;
+}
+.lib-menu-btn span { display: block; width: 18px; height: 2px; background: var(--text); border-radius: 2px; }
+
+.lib-page-title {
+    flex: 1;
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: -0.02em;
+    line-height: 1;
+}
+
+.lib-topbar-right { display: flex; align-items: center; gap: 0.5rem; }
+
+.lib-theme-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0.45rem 0.75rem;
+    cursor: pointer;
+    color: var(--text2);
+    font-size: 0.9rem;
+    transition: all 0.2s;
+    line-height: 1;
+}
+.lib-theme-btn:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+body.light-mode .lib-icon-moon { display: none; }
+body:not(.light-mode) .lib-icon-sun { display: none; }
+
+/* ── Stats row ─────────────────────────────────────── */
+.lib-stats-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+    margin-bottom: 1.75rem;
+}
+
+.lib-stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 1rem 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+}
+
+.lib-stat-val {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: var(--accent);
+    line-height: 1;
+    min-height: 1.8rem;
+    display: block;
+}
+
+.lib-stat-lbl {
+    font-size: 0.72rem;
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 600;
+}
+
+/* ── Setlists section ──────────────────────────────── */
+.lib-setlists-section {
+    margin-bottom: 1.5rem;
+}
+
+.lib-setlists-header, .lib-setlist-songs-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+}
+
+.lib-section-title {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--text2);
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+}
+
+.lib-btn-accent {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    padding: 0.45rem 1rem;
+    font-size: 0.82rem;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+.lib-btn-accent:hover { opacity: 0.85; }
+
+.lib-btn-ghost {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.3rem 0.6rem;
+    font-size: 0.78rem;
+    color: var(--text3);
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.lib-btn-ghost:hover { background: var(--surface2); color: var(--text); }
+
+.lib-setlists-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.lib-setlist-card {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 0.75rem 1rem;
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s, transform 0.15s;
+    position: relative;
+}
+.lib-setlist-card:hover { background: var(--surface2); transform: translateY(-1px); }
+.lib-setlist-card.selected { border-color: var(--accent); }
+
+.lib-setlist-color {
+    width: 6px;
+    min-height: 36px;
+    border-radius: 3px;
+    flex-shrink: 0;
+}
+
+.lib-setlist-info { flex: 1; min-width: 0; }
+.lib-setlist-name {
+    font-weight: 600;
+    color: var(--text);
+    font-size: 0.88rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.lib-setlist-count { font-size: 0.72rem; color: var(--text3); margin-top: 0.1rem; }
+
+/* ── Toolbar ───────────────────────────────────────── */
+.lib-toolbar {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+}
+
+.lib-search-wrap { flex: 1; min-width: 200px; }
+
+.lib-search-input {
+    width: 100%;
+    padding: 0.6rem 0.9rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    color: var(--text);
+    font-size: 0.9rem;
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.2s;
+}
+.lib-search-input:focus { border-color: var(--accent); }
+.lib-search-input::placeholder { color: var(--text3); }
+
+.lib-filter-group { display: flex; gap: 0.5rem; }
+
+.lib-filter-select {
+    padding: 0.55rem 0.75rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    color: var(--text);
+    font-size: 0.84rem;
+    font-family: inherit;
+    cursor: pointer;
+    outline: none;
+    transition: border-color 0.2s;
+}
+.lib-filter-select:focus { border-color: var(--accent); }
+
+.lib-view-btns { display: flex; gap: 0.25rem; }
+
+.lib-view-btn {
+    padding: 0.5rem 0.7rem;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text3);
+    cursor: pointer;
+    font-size: 1rem;
+    line-height: 1;
+    transition: all 0.2s;
+}
+.lib-view-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+.lib-view-btn:hover:not(.active) { background: var(--surface); color: var(--text); }
+
+/* ── Table ─────────────────────────────────────────── */
+.lib-table-wrap {
+    overflow-x: auto;
+    border-radius: 16px;
+    border: 1px solid var(--border);
+}
+
+.lib-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.87rem;
+}
+
+.lib-table th {
+    text-align: left;
+    padding: 0.7rem 1rem;
+    background: var(--surface);
+    color: var(--text3);
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 700;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+}
+
+.lib-table td {
+    padding: 0.7rem 1rem;
+    color: var(--text);
+    vertical-align: middle;
+    border-bottom: 1px solid var(--border);
+}
+
+.lib-table tbody tr:last-child td { border-bottom: none; }
+.lib-table tbody tr { transition: background 0.15s; }
+.lib-table tbody tr:hover { background: var(--surface); }
+
+.lib-cell-nombre { font-weight: 600; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lib-cell-muted  { color: var(--text2); }
+.lib-cell-fav    { width: 2.5rem; }
+.lib-cell-actions { white-space: nowrap; }
+
+/* ── Fav button ────────────────────────────────────── */
+.lib-fav-btn {
+    background: none;
+    border: none;
+    color: var(--text3);
+    cursor: pointer;
+    font-size: 1rem;
+    padding: 0.2rem;
+    line-height: 1;
+    transition: color 0.2s, transform 0.15s;
+}
+.lib-fav-btn:hover  { transform: scale(1.25); }
+.lib-fav-btn.active { color: #e55; }
+
+/* ── Row action buttons ────────────────────────────── */
+.lib-row-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    color: var(--text2);
+    cursor: pointer;
+    font-size: 0.78rem;
+    padding: 0.28rem 0.5rem;
+    margin-left: 0.2rem;
+    transition: all 0.15s;
+    font-family: inherit;
+    line-height: 1;
+}
+.lib-row-btn:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+.lib-row-btn.danger:hover { background: #c0392b; border-color: #c0392b; }
+
+/* ── Badges & Tags ─────────────────────────────────── */
+.lib-badge {
+    display: inline-block;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.12rem 0.45rem;
+    font-size: 0.72rem;
+    color: var(--text2);
+    font-weight: 600;
+}
+
+.lib-tag {
+    display: inline-block;
+    background: color-mix(in srgb, var(--accent) 14%, transparent);
+    border: 1px solid color-mix(in srgb, var(--accent) 28%, transparent);
+    border-radius: 5px;
+    padding: 0.1rem 0.38rem;
+    font-size: 0.7rem;
+    color: var(--accent);
+    font-weight: 600;
+    margin-right: 0.2rem;
+}
+
+.lib-tags-wrap { max-width: 160px; overflow: hidden; }
+
+/* ── Grid view ─────────────────────────────────────── */
+.lib-songs-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 1rem;
+}
+
+.lib-grid-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+.lib-grid-card:hover { transform: translateY(-2px); box-shadow: 0 6px 24px rgba(0,0,0,0.18); }
+
+.lib-grid-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 0.15rem;
+}
+.lib-grid-badges { display: flex; gap: 0.25rem; flex-wrap: wrap; }
+
+.lib-grid-nombre { font-weight: 600; color: var(--text); font-size: 0.9rem; line-height: 1.3; }
+.lib-grid-artista { font-size: 0.82rem; color: var(--text2); }
+
+.lib-grid-actions {
+    display: flex;
+    gap: 0.3rem;
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid var(--border);
+}
+
+/* ── Setlist pick list (in modal) ──────────────────── */
+.lib-setlist-pick-item {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.6rem 0.75rem;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 0.88rem;
+    color: var(--text);
+    font-family: inherit;
+    transition: all 0.15s;
+    text-align: left;
+    width: 100%;
+}
+.lib-setlist-pick-item:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+.lib-setlist-pick-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+/* ── Skeleton loaders ──────────────────────────────── */
+.lib-skeleton {
+    display: inline-block;
+    border-radius: 6px;
+    background: linear-gradient(
+        90deg,
+        var(--surface2) 25%,
+        var(--surface)  50%,
+        var(--surface2) 75%
+    );
+    background-size: 200% auto;
+    animation: lib-shimmer 1.5s infinite;
+}
+
+.lib-skeleton-text {
+    width: 2.5rem;
+    height: 1.8rem;
+    vertical-align: middle;
+}
+
+@keyframes lib-shimmer {
+    to { background-position: -200% center; }
+}
+
+.lib-skeleton-row td > div {
+    height: 0.9rem;
+    border-radius: 4px;
+    background: linear-gradient(90deg, var(--surface2) 25%, var(--surface) 50%, var(--surface2) 75%);
+    background-size: 200% auto;
+    animation: lib-shimmer 1.5s infinite;
+}
+
+/* ── Empty / error states ──────────────────────────── */
+.lib-empty {
+    text-align: center;
+    padding: 4rem 1rem;
+    color: var(--text3);
+}
+.lib-empty p { margin-bottom: 0.5rem; }
+
+/* ── Notifications ─────────────────────────────────── */
+.lib-notif {
+    position: fixed;
+    bottom: 1.75rem;
+    right: 1.75rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 0.75rem 1.25rem;
+    font-size: 0.88rem;
+    color: var(--text);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+    opacity: 0;
+    transform: translateY(6px);
+    transition: opacity 0.25s, transform 0.25s;
+    pointer-events: none;
+    z-index: 99999;
+    max-width: 320px;
+}
+.lib-notif.show { opacity: 1; transform: translateY(0); }
+.lib-notif.error { border-color: #e55; color: #e55; }
+.lib-notif.success { border-color: var(--accent); }
+
+/* ── Responsive ────────────────────────────────────── */
+@media (max-width: 900px) {
+    .lib-stats-row { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 768px) {
+    .lib-sidebar {
+        position: fixed;
+        left: -240px;
+        top: 0;
+        height: 100vh;
+        width: 240px;
+        z-index: 100;
+        box-shadow: 4px 0 24px rgba(0,0,0,0.25);
+    }
+    .lib-sidebar.open { left: 0; }
+    .lib-menu-btn { display: flex; }
+    .lib-main { padding: 1.25rem; }
+    .lib-toolbar { flex-direction: column; align-items: stretch; }
+    .lib-filter-group { flex-wrap: wrap; }
+}
+
+@media (max-width: 480px) {
+    .lib-stats-row { grid-template-columns: repeat(2, 1fr); gap: 0.6rem; }
+    .lib-stat-val  { font-size: 1.4rem; }
+    .lib-page-title { font-size: 1.2rem; }
+    .lib-songs-grid { grid-template-columns: 1fr; }
+}
