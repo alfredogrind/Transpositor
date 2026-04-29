@@ -11,7 +11,7 @@ let detectedKey       = null;
 let lastTransposedData = null;
 let notationMode      = 'classic';
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     ui.initTheme();
     initTemplateModal();
     initAlertModal();
@@ -19,6 +19,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initNotationToggle();
     ui.initSFM(toggleLibrary, scrollToOrShowSavePanel);
     ui.updateSFMSaveState(false);
+    await loadPendingSong();
 });
 
 const btnProcess = document.getElementById('btnProcess');
@@ -234,7 +235,8 @@ function initSavePanelDrawer() {
                 tonoOriginal: overlay.dataset.tonoOriginal || '',
                 bpm: document.getElementById('saveBpm').value || null,
                 etiquetas: document.getElementById('saveEtiquetas').value,
-                notas: document.getElementById('saveNotas').value.trim()
+                notas: document.getElementById('saveNotas').value.trim(),
+                letrasAcordes: JSON.stringify(songData),
             });
             msg.style.color = 'var(--accent)';
             msg.textContent = '✅ Canción guardada en la biblioteca.';
@@ -294,6 +296,49 @@ function initNotationToggle() {
             }
         });
     });
+}
+
+async function loadPendingSong() {
+    const id = localStorage.getItem('pendingSongId');
+    if (!id) return;
+    localStorage.removeItem('pendingSongId');
+
+    try {
+        const cancion = await API.obtenerCancion(parseInt(id));
+
+        lastTransposedData = null;
+        ui.updateSFMSaveState(false);
+        document.getElementById('finalOutput').style.display = 'none';
+        document.getElementById('detectionResults').innerHTML = '';
+
+        if (cancion.letra_acordes) {
+            try { songData = JSON.parse(cancion.letra_acordes); }
+            catch { songData = []; }
+        } else {
+            songData = [];
+        }
+
+        if (songData.length) {
+            refreshUI();
+            showToast(`♪ ${cancion.nombre} — ${cancion.cantautor}`);
+        } else {
+            showToast(`${cancion.nombre} cargada (sin acordes guardados)`, true);
+        }
+    } catch (err) {
+        console.error('Error al cargar canción desde biblioteca:', err);
+    }
+}
+
+function showToast(msg, warn = false) {
+    const t = document.createElement('div');
+    t.className = 'lib-toast' + (warn ? ' lib-toast--warn' : '');
+    t.textContent = msg;
+    document.body.appendChild(t);
+    requestAnimationFrame(() => requestAnimationFrame(() => t.classList.add('show')));
+    setTimeout(() => {
+        t.classList.remove('show');
+        setTimeout(() => t.remove(), 400);
+    }, 3800);
 }
 
 function initTemplateModal() {

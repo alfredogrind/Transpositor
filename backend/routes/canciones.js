@@ -84,6 +84,16 @@ router.get('/stats', (req, res, next) => {
     } catch (err) { next(err); }
 });
 
+// GET /:id — single song
+router.get('/:id', (req, res, next) => {
+    try {
+        const db = getDB();
+        const row = db.prepare('SELECT * FROM canciones WHERE id = ?').get(req.params.id);
+        if (!row) return res.status(404).json({ success: false, error: 'Canción no encontrada' });
+        res.json({ success: true, data: formatCancion(row) });
+    } catch (err) { next(err); }
+});
+
 // POST / — create
 router.post('/', validarCancion, (req, res, next) => {
     try {

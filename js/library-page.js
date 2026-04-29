@@ -72,6 +72,17 @@ function setupNav() {
             closeMobileSidebar();
         });
     });
+
+    document.querySelector('.lib-back-btn')?.addEventListener('click', e => {
+        e.preventDefault();
+        const overlay = document.getElementById('pageTransitionOverlay');
+        if (overlay) {
+            overlay.classList.add('active');
+            setTimeout(() => { window.location.href = 'index.html'; }, 300);
+        } else {
+            window.location.href = 'index.html';
+        }
+    });
 }
 
 function setSection(section) {
@@ -84,6 +95,7 @@ function setSection(section) {
 
     if (section === 'setlists') {
         libSetlistsSection.style.display = 'block';
+        $('libToolbar').style.display = 'none';
         selectedSetlistId = null;
         libSetlistSongsHeader.style.display = 'none';
         libSongsList.innerHTML = '';
@@ -91,6 +103,7 @@ function setSection(section) {
     } else {
         libSetlistsSection.style.display = 'none';
         libSetlistSongsHeader.style.display = 'none';
+        $('libToolbar').style.display = '';
         loadSongs();
     }
 }
@@ -136,7 +149,7 @@ async function loadSongs() {
         if (currentSection === 'setlists' && selectedSetlistId) {
             const sl = await API.obtenerSetlist(selectedSetlistId);
             songs = sl.canciones || [];
-            renderSongs(songs);
+            renderSetlistSongs(songs);
             return;
         }
         songs = await API.listar(params);
@@ -183,9 +196,49 @@ function renderSongs(data) {
     viewMode === 'table' ? renderTable(data) : renderGrid(data);
 }
 
+function renderSetlistSongs(data) {
+    if (!data.length) {
+        libSongsList.innerHTML = `
+            <div class="lib-empty">
+                <p>Este setlist está vacío.</p>
+                <span style="font-size:0.82rem;">Añade canciones desde la sección "Canciones".</span>
+            </div>`;
+        return;
+    }
+    const rows = data.map((c, i) => `
+        <tr data-id="${c.id}" title="Doble clic para abrir en el transpositor" class="lib-row-openable">
+            <td class="lib-cell-pos">${(c.posicion ?? i) + 1}</td>
+            <td class="lib-cell-nombre">${esc(c.nombre)}</td>
+            <td class="lib-cell-muted">${esc(c.cantautor)}</td>
+            <td>${c.tono_original
+                ? `<span class="lib-badge">${esc(c.tono_original)}</span>`
+                : '<span class="lib-cell-muted">—</span>'}</td>
+            <td class="lib-cell-actions">
+                <button class="lib-row-btn danger"
+                        data-action="removefromsetlist"
+                        data-id="${c.id}"
+                        title="Quitar del setlist">✕</button>
+            </td>
+        </tr>`).join('');
+
+    libSongsList.innerHTML = `
+        <div class="lib-table-wrap">
+            <table class="lib-table">
+                <thead><tr>
+                    <th>#</th>
+                    <th>Canción</th>
+                    <th>Artista</th>
+                    <th>Tono</th>
+                    <th></th>
+                </tr></thead>
+                <tbody>${rows}</tbody>
+            </table>
+        </div>`;
+}
+
 function renderTable(data) {
     const rows = data.map(c => `
-        <tr>
+        <tr data-id="${c.id}" title="Doble clic para abrir en el transpositor" class="lib-row-openable">
             <td class="lib-cell-fav">
                 <button class="lib-fav-btn${favIds.has(c.id) ? ' active' : ''}"
                         data-action="fav" data-id="${c.id}" title="Favorito">♥</button>
@@ -223,7 +276,7 @@ function renderGrid(data) {
     libSongsList.innerHTML = `
         <div class="lib-songs-grid">
             ${data.map(c => `
-                <div class="lib-grid-card">
+                <div class="lib-grid-card" data-id="${c.id}" title="Doble clic para abrir en el transpositor">
                     <div class="lib-grid-top">
                         <button class="lib-fav-btn${favIds.has(c.id) ? ' active' : ''}"
                                 data-action="fav" data-id="${c.id}" title="Favorito">♥</button>
@@ -251,11 +304,30 @@ function setupSongActions() {
         if (!btn) return;
         const id     = parseInt(btn.dataset.id);
         const action = btn.dataset.action;
-        if (action === 'fav')       toggleFavorito(id, btn);
-        else if (action === 'edit') openEditModal(id);
-        else if (action === 'delete') openDeleteModal(id);
-        else if (action === 'addsetlist') openAddToSetlistModal(id);
+        if (action === 'fav')                    toggleFavorito(id, btn);
+        else if (action === 'edit')              openEditModal(id);
+        else if (action === 'delete')            openDeleteModal(id);
+        else if (action === 'addsetlist')        openAddToSetlistModal(id);
+        else if (action === 'removefromsetlist') removeFromSetlist(id);
     });
+
+    libSongsList.addEventListener('dblclick', e => {
+        if (e.target.closest('button')) return;
+        const row = e.target.closest('tr[data-id], .lib-grid-card[data-id]');
+        if (!row) return;
+        openInTranspositor(parseInt(row.dataset.id));
+    });
+}
+
+function openInTranspositor(id) {
+    localStorage.setItem('pendingSongId', id);
+    const overlay = document.getElementById('pageTransitionOverlay');
+    if (overlay) {
+        overlay.classList.add('active');
+        setTimeout(() => { window.location.href = 'index.html'; }, 300);
+    } else {
+        window.location.href = 'index.html';
+    }
 }
 
 // ── Toolbar ────────────────────────────────────────────────────
@@ -368,6 +440,16 @@ async function deleteSetlist(id) {
         if (selectedSetlistId === id) { selectedSetlistId = null; libSetlistSongsHeader.style.display = 'none'; libSongsList.innerHTML = ''; }
         notif('Setlist eliminado');
         await loadSetlists();
+    } catch (err) { notif(err.message, true); }
+}
+
+async function removeFromSetlist(cancionId) {
+    try {
+        await API.eliminarDeSetlist(selectedSetlistId, cancionId);
+        notif('Canción quitada del setlist');
+        await loadSongs();
+        setlists = await API.obtenerSetlists();
+        renderSetlists();
     } catch (err) { notif(err.message, true); }
 }
 

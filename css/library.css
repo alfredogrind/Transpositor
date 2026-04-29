@@ -84,15 +84,31 @@ body {
     display: flex;
     align-items: center;
     gap: 0.4rem;
-    padding: 0.6rem 0.75rem;
-    color: var(--text3);
+    padding: 0.65rem 1rem;
+    background: var(--accent);
+    color: rgba(0, 0, 0, 0.82);
     text-decoration: none;
     font-size: 0.82rem;
+    font-weight: 600;
     border-radius: 12px;
-    transition: background 0.2s, color 0.2s;
     margin-top: 0.5rem;
+    animation: lib-back-pulse 3s ease-in-out infinite;
+    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+                box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+                filter 0.25s;
+    will-change: transform, box-shadow;
 }
-.lib-back-btn:hover { background: var(--surface2); color: var(--text); }
+.lib-back-btn:hover {
+    transform: scale(1.05);
+    filter: brightness(1.12);
+    box-shadow: 0 4px 18px rgba(200, 169, 110, 0.55);
+    animation-play-state: paused;
+}
+
+@keyframes lib-back-pulse {
+    0%, 100% { box-shadow: 0 2px 8px  rgba(200, 169, 110, 0.25), 0 0 0 1px rgba(200, 169, 110, 0.15); }
+    50%       { box-shadow: 0 2px 20px rgba(200, 169, 110, 0.55), 0 0 0 1px rgba(200, 169, 110, 0.35); }
+}
 
 /* ── Mobile sidebar overlay ────────────────────────── */
 .lib-sidebar-overlay {
@@ -383,6 +399,11 @@ body:not(.light-mode) .lib-icon-sun { display: none; }
 .lib-cell-muted  { color: var(--text2); }
 .lib-cell-fav    { width: 2.5rem; }
 .lib-cell-actions { white-space: nowrap; }
+.lib-cell-pos    { width: 2.5rem; color: var(--text3); font-size: 0.78rem; font-variant-numeric: tabular-nums; text-align: center; }
+
+/* Rows / cards openable via double-click */
+.lib-row-openable { cursor: pointer; }
+.lib-grid-card[data-id] { cursor: pointer; }
 
 /* ── Fav button ────────────────────────────────────── */
 .lib-fav-btn {
@@ -589,4 +610,10 @@ body:not(.light-mode) .lib-icon-sun { display: none; }
     .lib-stat-val  { font-size: 1.4rem; }
     .lib-page-title { font-size: 1.2rem; }
     .lib-songs-grid { grid-template-columns: 1fr; }
+}
+
+/* ── Page Transition Entry ─────────────────────────────────────── */
+.lib-shell {
+    animation: page-enter 0.5s cubic-bezier(0.4, 0, 0.2, 1) both;
+    will-change: opacity, transform;
 }

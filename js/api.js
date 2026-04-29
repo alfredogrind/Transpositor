@@ -30,6 +30,11 @@ class API {
         } catch { return {}; }
     }
 
+    static async obtenerCancion(id) {
+        const json = await API._fetch(`/canciones/${id}`);
+        return json.data;
+    }
+
     static async crear(datos) {
         const json = await API._fetch('/canciones', {
             method: 'POST',
@@ -43,6 +48,7 @@ class API {
                                 ? datos.etiquetas
                                 : (datos.etiquetas || '').split(',').map(e => e.trim()).filter(Boolean),
                 notas:        datos.notas,
+                letra_acordes: datos.letrasAcordes || null,
             })
         });
         return json.data;
