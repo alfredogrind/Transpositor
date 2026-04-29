@@ -46,12 +46,7 @@
                     <span></span><span></span><span></span>
                 </button>
                 <h1 class="lib-page-title" id="libPageTitle">Mis Canciones</h1>
-                <div class="lib-topbar-right">
-                    <button class="lib-theme-btn" id="libThemeBtn" title="Cambiar tema">
-                        <span class="lib-icon-sun">☀</span>
-                        <span class="lib-icon-moon">☽</span>
-                    </button>
-                </div>
+                <div class="lib-topbar-right"></div>
             </div>
 
             <!-- Stats row -->
@@ -205,6 +200,32 @@
                 <p id="libAddSetlistMsg" style="font-size:0.82rem;text-align:center;min-height:1em;color:var(--accent);"></p>
             </div>
         </div>
+    </div>
+
+    <div id="floatingControlGroup" class="floating-control-group">
+        <div class="control-panel">
+            <div class="a11y-wrapper">
+                <div id="a11yPicker" class="a11y-picker"></div>
+                <button id="a11yToggle" class="theme-toggle" title="Tamaño de acordes">
+                    <span class="icon-a11y">Aa</span>
+                </button>
+            </div>
+            <div class="palette-wrapper">
+                <div id="palettePicker" class="palette-picker"></div>
+                <button id="paletteToggle" class="theme-toggle" title="Cambiar paleta de colores">
+                    <span class="icon-palette">◉</span>
+                </button>
+            </div>
+            <button id="themeToggle" class="theme-toggle" title="Cambiar modo de color">
+                <span class="icon-sun">☀️</span>
+                <span class="icon-moon">🌙</span>
+            </button>
+        </div>
+        <button id="controlFab" class="control-fab" title="Personalización">
+            <span class="fab-sliders">
+                <span></span><span></span><span></span>
+            </span>
+        </button>
     </div>
 
     <div id="pageTransitionOverlay" class="page-transition-overlay" aria-hidden="true"></div>

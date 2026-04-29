@@ -388,12 +388,18 @@ export function initTheme() {
     });
 }
 
-export function initSFM(onOpenLibrary, onSaveScan) {
+export function initSFM(onOpenLibrary, onSaveScan, onOpenSetlist) {
     const group   = document.getElementById('sfmGroup');
     const trigger = document.getElementById('sfmTrigger');
     const btnLib  = document.getElementById('sfmOpenLibrary');
     const btnSave = document.getElementById('sfmSaveScan');
+    const btnSetlist = document.getElementById('sfmOpenSetlist');
     if (!group || !trigger) return;
+
+    const closeSFM = () => {
+        group.classList.remove('open');
+        trigger.setAttribute('aria-expanded', 'false');
+    };
 
     trigger.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -402,30 +408,16 @@ export function initSFM(onOpenLibrary, onSaveScan) {
     });
 
     document.addEventListener('click', (e) => {
-        if (!group.contains(e.target)) {
-            group.classList.remove('open');
-            trigger.setAttribute('aria-expanded', 'false');
-        }
+        if (!group.contains(e.target)) closeSFM();
     });
 
     document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') {
-            group.classList.remove('open');
-            trigger.setAttribute('aria-expanded', 'false');
-        }
+        if (e.key === 'Escape') closeSFM();
     });
 
-    btnLib?.addEventListener('click', () => {
-        group.classList.remove('open');
-        trigger.setAttribute('aria-expanded', 'false');
-        onOpenLibrary();
-    });
-
-    btnSave?.addEventListener('click', () => {
-        group.classList.remove('open');
-        trigger.setAttribute('aria-expanded', 'false');
-        onSaveScan();
-    });
+    btnLib?.addEventListener('click', () => { closeSFM(); onOpenLibrary(); });
+    btnSave?.addEventListener('click', () => { closeSFM(); onSaveScan(); });
+    btnSetlist?.addEventListener('click', () => { closeSFM(); onOpenSetlist?.(); });
 }
 
 export function updateSFMSaveState(hasData) {

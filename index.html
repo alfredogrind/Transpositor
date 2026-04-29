@@ -67,8 +67,6 @@
             <p class="result-header">Resultado Transportado</p>
             <div id="outputContainer" style="width: 100%;"></div>
         </div>
-
-        <div id="keyFloatingBadge" class="key-floating-badge"></div>
     </main>
 
     <!-- Modal: selección de formato de plantilla -->
@@ -147,6 +145,10 @@
     <!-- Smart Floating Menu -->
     <div id="sfmGroup" class="sfm-group">
         <div class="sfm-menu" id="sfmMenu" role="menu">
+            <button class="sfm-item" id="sfmOpenSetlist" role="menuitem">
+                <span class="sfm-item-icon">≡</span>
+                Setlist
+            </button>
             <button class="sfm-item" id="sfmOpenLibrary" role="menuitem">
                 <span class="sfm-item-icon">♫</span>
                 Biblioteca
@@ -161,22 +163,40 @@
         </button>
     </div>
 
-    <!-- Save Panel — Apple-style Floating Card -->
+    <!-- Setlist Popup -->
+    <div id="setlistPopupOverlay" class="setlist-popup-overlay" aria-hidden="true" role="dialog" aria-modal="true">
+        <div id="setlistPopupCard" class="setlist-popup-card">
+            <div class="setlist-popup-header">
+                <button id="setlistPopupBack" class="setlist-popup-btn setlist-popup-back" aria-label="Volver" style="visibility:hidden">‹</button>
+                <span id="setlistPopupTitle" class="setlist-popup-title">Setlists</span>
+                <button id="setlistPopupClose" class="setlist-popup-btn" aria-label="Cerrar">✕</button>
+            </div>
+            <div id="setlistPopupContent" class="setlist-popup-content"></div>
+        </div>
+    </div>
+
+    <!-- Save Panel — Glassmorphism -->
     <div id="savePanelOverlay" class="save-panel-overlay" aria-hidden="true">
         <div id="savePanelDrawer" class="save-panel-popup" role="dialog" aria-labelledby="savePanelTitle">
+            <div class="sp-orb sp-orb--1" aria-hidden="true"></div>
+            <div class="sp-orb sp-orb--2" aria-hidden="true"></div>
+            <div class="sp-orb sp-orb--3" aria-hidden="true"></div>
             <div class="save-panel-header">
                 <div class="save-panel-title-group">
+                    <div class="sp-icon-tile" aria-hidden="true">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+                    </div>
                     <span id="savePanelTitle" class="save-panel-title">Guardar canción</span>
                     <span class="save-panel-subtitle">Añade los detalles para tu biblioteca</span>
                 </div>
                 <button class="save-panel-close" id="savePanelClose" aria-label="Cerrar">✕</button>
             </div>
             <div class="save-fields">
-                <input id="saveNombre"    class="save-input" type="text"   placeholder="Nombre de la canción *" />
-                <input id="saveCantautor" class="save-input" type="text"   placeholder="Cantautor *" />
-                <input id="saveBpm"       class="save-input" type="number" placeholder="BPM" min="1" max="300" />
-                <input id="saveEtiquetas" class="save-input" type="text"   placeholder="Etiquetas (separadas por coma)" />
-                <textarea id="saveNotas"  class="save-input" rows="3"      placeholder="Notas adicionales" style="resize:vertical;"></textarea>
+                <input id="saveNombre"    style="--i:0" class="save-input" type="text"   placeholder="Nombre de la canción *" />
+                <input id="saveCantautor" style="--i:1" class="save-input" type="text"   placeholder="Cantautor *" />
+                <input id="saveBpm"       style="--i:2" class="save-input" type="number" placeholder="BPM" min="1" max="300" />
+                <input id="saveEtiquetas" style="--i:3" class="save-input" type="text"   placeholder="Etiquetas (separadas por coma)" />
+                <textarea id="saveNotas"  style="--i:4; resize:vertical;" class="save-input" rows="3" placeholder="Notas adicionales"></textarea>
             </div>
             <div class="save-panel-footer">
                 <button id="btnGuardar" class="btn-action">Guardar canción</button>

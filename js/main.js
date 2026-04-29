@@ -17,7 +17,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     initAlertModal();
     initSavePanelDrawer();
     initNotationToggle();
-    ui.initSFM(toggleLibrary, scrollToOrShowSavePanel);
+    initSetlistPopup();
+    ui.initSFM(toggleLibrary, scrollToOrShowSavePanel, openSetlistPopup);
     ui.updateSFMSaveState(false);
     await loadPendingSong();
 });
@@ -123,8 +124,6 @@ function refreshUI() {
     songData    = songData.filter(s => s.chords.length > 0);
     const chords = songData.flatMap(s => s.chords);
     detectedKey  = music.detectSongKey(chords);
-    ui.renderDetectedKey(document.getElementById('keyFloatingBadge'), detectedKey);
-
     ui.renderResults(
         document.getElementById('detectionResults'),
         songData,
@@ -135,6 +134,7 @@ function refreshUI() {
 
     ui.renderToneGrid(document.getElementById('gridTones'), detectedKey?.quality, (note) => { targetKey = note; });
     document.getElementById('toneSelector').style.display = 'block';
+    ui.updateSFMSaveState(true);
 }
 
 btnTranspose.onclick = () => {
@@ -170,7 +170,7 @@ btnTranspose.onclick = () => {
 };
 
 function scrollToOrShowSavePanel() {
-    if (!lastTransposedData) return;
+    if (!songData.length) return;
     showSavePanel(detectedKey?.root || '');
 }
 
@@ -298,18 +298,16 @@ function initNotationToggle() {
     });
 }
 
-async function loadPendingSong() {
-    const id = localStorage.getItem('pendingSongId');
-    if (!id) return;
-    localStorage.removeItem('pendingSongId');
-
+async function loadSongById(id) {
     try {
         const cancion = await API.obtenerCancion(parseInt(id));
 
         lastTransposedData = null;
+        targetKey = null;
         ui.updateSFMSaveState(false);
         document.getElementById('finalOutput').style.display = 'none';
         document.getElementById('detectionResults').innerHTML = '';
+        document.getElementById('toneSelector').style.display = 'none';
 
         if (cancion.letra_acordes) {
             try { songData = JSON.parse(cancion.letra_acordes); }
@@ -324,9 +322,18 @@ async function loadPendingSong() {
         } else {
             showToast(`${cancion.nombre} cargada (sin acordes guardados)`, true);
         }
+
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err) {
-        console.error('Error al cargar canción desde biblioteca:', err);
+        console.error('Error al cargar canción:', err);
     }
+}
+
+async function loadPendingSong() {
+    const id = localStorage.getItem('pendingSongId');
+    if (!id) return;
+    localStorage.removeItem('pendingSongId');
+    await loadSongById(id);
 }
 
 function showToast(msg, warn = false) {
@@ -351,4 +358,107 @@ function initTemplateModal() {
     modal.querySelectorAll('.modal-option').forEach(btn => {
         btn.onclick = () => { template.downloadTemplate(btn.dataset.format); modal.classList.remove('open'); };
     });
+}
+
+// ── Setlist Popup ─────────────────────────────────────────────────
+function initSetlistPopup() {
+    const overlay = document.getElementById('setlistPopupOverlay');
+    const btnClose = document.getElementById('setlistPopupClose');
+    const btnBack  = document.getElementById('setlistPopupBack');
+    if (!overlay) return;
+
+    btnClose.addEventListener('click', closeSetlistPopup);
+    btnBack.addEventListener('click', showSetlistList);
+    overlay.addEventListener('click', e => { if (e.target === overlay) closeSetlistPopup(); });
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Escape' && overlay.classList.contains('open')) closeSetlistPopup();
+    });
+}
+
+function closeSetlistPopup() {
+    const overlay = document.getElementById('setlistPopupOverlay');
+    overlay.classList.remove('open');
+    overlay.setAttribute('aria-hidden', 'true');
+}
+
+async function openSetlistPopup() {
+    const overlay = document.getElementById('setlistPopupOverlay');
+    overlay.setAttribute('aria-hidden', 'false');
+    overlay.classList.add('open');
+    await showSetlistList();
+}
+
+async function showSetlistList() {
+    const content  = document.getElementById('setlistPopupContent');
+    const title    = document.getElementById('setlistPopupTitle');
+    const btnBack  = document.getElementById('setlistPopupBack');
+    title.textContent = 'Setlists';
+    btnBack.style.visibility = 'hidden';
+    content.innerHTML = '<p class="sl-empty">Cargando…</p>';
+
+    try {
+        const setlists = await API.obtenerSetlists();
+        if (!setlists.length) {
+            content.innerHTML = '<p class="sl-empty">No hay setlists creados.<br>Créalos desde la Biblioteca.</p>';
+            return;
+        }
+        content.innerHTML = setlists.map((sl, i) => `
+            <button class="sl-pick-card" data-id="${sl.id}"
+                    style="animation-delay:${i * 55}ms">
+                <span class="sl-pick-dot" style="background:${escHtml(sl.color || '#667eea')}"></span>
+                <span class="sl-pick-name">${escHtml(sl.nombre)}</span>
+                <span class="sl-pick-count">${sl.total_canciones || 0} canciones</span>
+            </button>`).join('');
+
+        content.querySelectorAll('.sl-pick-card').forEach(card => {
+            card.addEventListener('click', () => showSetlistSongs(parseInt(card.dataset.id), setlists));
+        });
+    } catch {
+        content.innerHTML = '<p class="sl-empty">Error al cargar los setlists.</p>';
+    }
+}
+
+async function showSetlistSongs(id, setlists) {
+    const content  = document.getElementById('setlistPopupContent');
+    const title    = document.getElementById('setlistPopupTitle');
+    const btnBack  = document.getElementById('setlistPopupBack');
+    const sl       = setlists.find(s => s.id === id);
+    title.textContent = sl?.nombre || 'Setlist';
+    btnBack.style.visibility = 'visible';
+    content.innerHTML = '<p class="sl-empty">Cargando…</p>';
+
+    try {
+        const data  = await API.obtenerSetlist(id);
+        const songs = data.canciones || [];
+        if (!songs.length) {
+            content.innerHTML = '<p class="sl-empty">Este setlist está vacío.</p>';
+            return;
+        }
+        content.innerHTML = `<div style="padding:0 0.2rem">${songs.map((c, i) => `
+            <button class="sl-song-row" data-id="${c.id}" style="animation-delay:${i * 45}ms"
+                    title="Abrir en el transpositor">
+                <span class="sl-song-pos">${i + 1}</span>
+                <div class="sl-song-info">
+                    <p class="sl-song-name">${escHtml(c.nombre)}</p>
+                    <p class="sl-song-artist">${escHtml(c.cantautor)}</p>
+                </div>
+                ${c.tono_original ? `<span class="sl-song-badge">${escHtml(c.tono_original)}</span>` : ''}
+                <span class="sl-song-open-icon">›</span>
+            </button>`).join('')}</div>`;
+
+        content.querySelectorAll('.sl-song-row').forEach(row => {
+            row.addEventListener('click', async () => {
+                closeSetlistPopup();
+                await loadSongById(parseInt(row.dataset.id));
+            });
+        });
+    } catch {
+        content.innerHTML = '<p class="sl-empty">Error al cargar las canciones.</p>';
+    }
+}
+
+function escHtml(t) {
+    const d = document.createElement('div');
+    d.textContent = t ?? '';
+    return d.innerHTML;
 }

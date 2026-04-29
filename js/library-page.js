@@ -1,4 +1,5 @@
 import API from './api.js';
+import { initTheme } from './ui.js';
 
 // ── State ──────────────────────────────────────────────────────
 let songs        = [];
@@ -39,7 +40,7 @@ const modalAddSetlist   = $('libModalAddSetlist');
 document.addEventListener('DOMContentLoaded', init);
 
 async function init() {
-    applyTheme();
+    initTheme();
     setupNav();
     setupMobileSidebar();
     setupToolbar();
@@ -49,19 +50,6 @@ async function init() {
     setupSetlistActions();
     updateViewBtns();
     await Promise.all([loadStats(), loadFavs(), loadSongs()]);
-}
-
-// ── Theme ──────────────────────────────────────────────────────
-function applyTheme() {
-    if (localStorage.getItem('theme') === 'light') document.body.classList.add('light-mode');
-    document.body.setAttribute('data-palette', localStorage.getItem('palette') || '0');
-    const sz = localStorage.getItem('chordSize');
-    if (sz) document.documentElement.setAttribute('data-chord-size', sz);
-
-    $('libThemeBtn')?.addEventListener('click', () => {
-        document.body.classList.toggle('light-mode');
-        localStorage.setItem('theme', document.body.classList.contains('light-mode') ? 'light' : 'dark');
-    });
 }
 
 // ── Navigation ─────────────────────────────────────────────────
