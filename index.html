@@ -103,32 +103,6 @@
         </div>
     </div>
 
-    <div id="floatingControlGroup" class="floating-control-group">
-        <div class="control-panel">
-            <div class="a11y-wrapper">
-                <div id="a11yPicker" class="a11y-picker"></div>
-                <button id="a11yToggle" class="theme-toggle" title="Tamaño de acordes">
-                    <span class="icon-a11y">Aa</span>
-                </button>
-            </div>
-            <div class="palette-wrapper">
-                <div id="palettePicker" class="palette-picker"></div>
-                <button id="paletteToggle" class="theme-toggle" title="Cambiar paleta de colores">
-                    <span class="icon-palette">◉</span>
-                </button>
-            </div>
-            <button id="themeToggle" class="theme-toggle" title="Cambiar modo de color">
-                <span class="icon-sun">☀️</span>
-                <span class="icon-moon">🌙</span>
-            </button>
-        </div>
-        <button id="controlFab" class="control-fab" title="Personalización">
-            <span class="fab-sliders">
-                <span></span><span></span><span></span>
-            </span>
-        </button>
-    </div>
-
     <!-- Modal: aviso de validación -->
     <div id="alertModal" class="modal-overlay" aria-hidden="true">
         <div class="modal-card alert-modal-card" role="alertdialog" aria-labelledby="alertModalTitle">
@@ -145,6 +119,10 @@
     <!-- Smart Floating Menu -->
     <div id="sfmGroup" class="sfm-group">
         <div class="sfm-menu" id="sfmMenu" role="menu">
+            <button class="sfm-item" id="sfmPersonalizar" role="menuitem">
+                <span class="sfm-item-icon">◉</span>
+                Personalizar
+            </button>
             <button class="sfm-item" id="sfmOpenSetlist" role="menuitem">
                 <span class="sfm-item-icon">≡</span>
                 Setlist
@@ -161,6 +139,25 @@
         <button class="sfm-trigger" id="sfmTrigger" aria-label="Acciones rápidas" aria-expanded="false">
             <span class="sfm-trigger-icon">+</span>
         </button>
+    </div>
+
+    <!-- Panel de personalización -->
+    <div id="personalizarPanel" class="personalizar-panel" aria-hidden="true">
+        <div class="pers-row">
+            <span class="pers-label">Tema</span>
+            <div class="pers-theme-modes">
+                <button id="themeDark"  class="pers-theme-mode">Dark Mode</button>
+                <button id="themeLight" class="pers-theme-mode">Light Mode</button>
+            </div>
+        </div>
+        <div class="pers-row">
+            <span class="pers-label">Paleta</span>
+            <div id="sfmPaletteRow" class="pers-swatches"></div>
+        </div>
+        <div class="pers-row">
+            <span class="pers-label">Texto</span>
+            <div id="sfmSizeRow" class="pers-sizes"></div>
+        </div>
     </div>
 
     <!-- Setlist Popup -->

@@ -354,196 +354,6 @@ main {
 }
 .btn-tone.selected { background: var(--accent); color: #000; border-color: var(--accent); }
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   CONTROL FLOTANTE (FAB) — LÓGICA ORIGINAL + ESTILOS RESTAURADOS
-   ═══════════════════════════════════════════════════════════════════════════ */
-
-.floating-control-group {
-    position: fixed; bottom: 100px; right: 30px; z-index: 9999;
-    display: flex; flex-direction: column; align-items: center; gap: 10px;
-}
-
-/* Cuando el FAB está cerca del borde superior, el panel se abre hacia abajo */
-.floating-control-group.panel-below .control-panel {
-    position: absolute;
-    top: 64px;   /* 54px FAB + 10px gap */
-    right: 0;
-    left: auto;
-    transform: translateY(-10px) scale(0.88);
-}
-.floating-control-group.panel-below.open .control-panel {
-    transform: translateY(0) scale(1);
-}
-
-.control-panel {
-    display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 10px;
-    background: var(--surface); border: 1px solid var(--border); border-radius: 28px;
-    box-shadow: var(--card-shadow); pointer-events: none; max-height: 0; overflow: hidden; opacity: 0;
-    transform: translateY(14px) scale(0.88); transition: all 0.45s cubic-bezier(0.16, 1, 0.3, 1);
-}
-.floating-control-group.open .control-panel {
-    pointer-events: auto; max-height: 260px; opacity: 1; transform: translateY(0) scale(1);
-}
-
-.control-fab {
-    width: 54px; height: 54px; border-radius: 50%;
-    background: var(--surface); border: 1px solid var(--border);
-    box-shadow: var(--card-shadow); cursor: grab;
-    display: flex; align-items: center; justify-content: center;
-    overflow: visible;
-    touch-action: none;
-}
-
-/* Icono de tres barras del FAB — anima a × cuando el panel está abierto */
-.fab-sliders {
-    display: flex; flex-direction: column; gap: 4px; align-items: center;
-    pointer-events: none;
-}
-.fab-sliders span {
-    display: block; height: 2px; border-radius: 2px; background: var(--accent);
-    transform-origin: center;
-    will-change: transform, opacity;
-    transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1),
-                opacity   0.2s  ease,
-                width     0.3s  cubic-bezier(0.16, 1, 0.3, 1);
-}
-.fab-sliders span:nth-child(1) { width: 18px; }
-.fab-sliders span:nth-child(2) { width: 12px; }
-.fab-sliders span:nth-child(3) { width: 18px; }
-
-/* Estado abierto: las tres barras forman una × */
-.floating-control-group.open .fab-sliders span:nth-child(1) {
-    width: 18px;
-    transform: translateY(6px) rotate(45deg);
-}
-.floating-control-group.open .fab-sliders span:nth-child(2) {
-    opacity: 0;
-    transform: scaleX(0);
-}
-.floating-control-group.open .fab-sliders span:nth-child(3) {
-    width: 18px;
-    transform: translateY(-6px) rotate(-45deg);
-}
-
-/* Botones del panel de control (Aa, ◉, ☀/🌙) */
-.theme-toggle {
-    width: 44px; height: 44px;
-    border-radius: 14px;
-    background: var(--control-item-bg);
-    border: 1px solid var(--border);
-    color: var(--text);
-    cursor: pointer;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 1.1rem;
-    transition: var(--transition);
-    flex-shrink: 0;
-}
-.theme-toggle:hover {
-    background: var(--accent);
-    border-color: var(--accent);
-    color: #000;
-    transform: scale(1.08);
-}
-
-/* Hint de interactividad: pulso sutil al cargar que indica "presiona para ver opciones" */
-@keyframes a11y-hint {
-    0%, 100% { transform: scale(1);    box-shadow: var(--card-shadow); }
-    50%       { transform: scale(1.1);  box-shadow: var(--card-shadow), 0 0 0 7px var(--accent-glow); }
-}
-
-#a11yToggle {
-    animation: a11y-hint 1.4s ease-in-out 1.5s 3;
-}
-#a11yToggle:hover,
-#a11yToggle:focus {
-    animation: none;
-}
-
-/* Iconos de sol/luna — visibilidad según tema */
-.icon-sun  { display: none;   line-height: 1; }
-.icon-moon { display: inline; line-height: 1; }
-body.light-mode .icon-sun  { display: inline; }
-body.light-mode .icon-moon { display: none;   }
-
-/* Wrappers que contienen picker + toggle */
-.a11y-wrapper,
-.palette-wrapper {
-    display: flex; align-items: center; position: relative;
-}
-
-/* ─── PICKERS FLOTANTES (accesibilidad y paleta) ─── */
-/* position:fixed → salen del overflow:hidden del control-panel y
-   se posicionan relativo al viewport mediante positionPicker() en JS  */
-.a11y-picker,
-.palette-picker {
-    position: fixed;
-    z-index: 10000;
-    background: var(--surface);
-    backdrop-filter: blur(25px) saturate(180%);
-    -webkit-backdrop-filter: blur(25px) saturate(180%);
-    border: 1px solid var(--border);
-    border-radius: 20px;
-    box-shadow: var(--card-shadow);
-    padding: 14px;
-    opacity: 0;
-    pointer-events: none;
-    transform: scale(0.88) translateX(10px);
-    transition: opacity 0.25s ease, transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-}
-.a11y-picker.open,
-.palette-picker.open {
-    opacity: 1;
-    pointer-events: auto;
-    transform: scale(1) translateX(0);
-}
-
-/* Etiqueta superior del picker de accesibilidad */
-.a11y-label {
-    display: block;
-    font-size: 0.6rem;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    color: var(--text3);
-    font-weight: 700;
-    margin-bottom: 10px;
-    text-align: center;
-    white-space: nowrap;
-}
-
-/* Fila de botones de tamaño */
-.a11y-sizes { display: flex; gap: 6px; align-items: center; }
-
-.a11y-size-btn {
-    width: 34px; height: 34px;
-    border-radius: 10px;
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    color: var(--text2);
-    cursor: pointer;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    font-weight: 600;
-    font-size: 0.75rem;
-    display: flex; align-items: center; justify-content: center;
-    transition: var(--transition);
-}
-.a11y-size-btn:hover    { background: var(--surface); border-color: var(--accent); color: var(--accent); }
-.a11y-size-btn.selected { background: var(--accent);  border-color: var(--accent); color: #000; }
-
-/* Opciones del picker de paleta */
-.palette-option {
-    display: flex; align-items: center; gap: 10px;
-    padding: 8px 10px; border-radius: 12px;
-    cursor: pointer; transition: var(--transition); white-space: nowrap;
-}
-.palette-option:hover { background: var(--surface2); }
-
-.pal-swatch {
-    width: 16px; height: 16px; border-radius: 50%;
-    flex-shrink: 0; border: 1px solid rgba(255, 255, 255, 0.18);
-}
-body.light-mode .pal-swatch { border-color: rgba(0, 0, 0, 0.1); }
-
-.pal-name { font-size: 0.82rem; font-weight: 500; color: var(--text); }
 
 /* ═══════════════════════════════════════════════════════════════════════════
    BADGE DE TONALIDAD FLOTANTE — RESTAURADO
@@ -579,35 +389,6 @@ html[data-chord-size="xl"] { font-size: 20px; }
     .grid-tones { grid-template-columns: repeat(4, 1fr); }
 
 
-}
-
-/* Efecto de Onda Expansiva (Ripple Wave) - RESTAURADO */
-.control-fab {
-  position: relative;
-}
-
-.control-fab::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  border: 2px solid var(--wave-color);
-  border-radius: 50%;
-  pointer-events: none;
-  animation: wave-ripple 3s infinite ease-out;
-}
-
-@keyframes wave-ripple {
-  0% {
-    transform: scale(1);
-    opacity: 0.6;
-  }
-  100% {
-    transform: scale(1.8);
-    opacity: 0;
-  }
 }
 
 /* ── Notation Toggle ─────────────────────────────────────────────────────── */
@@ -1473,6 +1254,119 @@ body.light-mode .save-panel-popup .sp-tag-editor:focus-within {
     color: #e74c3c;
 }
 
+/* ── Panel Personalizar ─────────────────────────────────────────────────── */
+.personalizar-panel {
+    position: fixed;
+    bottom: 90px;
+    right: 20px;
+    z-index: 9999;
+    background: var(--surface);
+    backdrop-filter: blur(25px) saturate(180%);
+    -webkit-backdrop-filter: blur(25px) saturate(180%);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    box-shadow: var(--card-shadow);
+    padding: 1rem 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    min-width: 260px;
+    opacity: 0;
+    transform: translateY(10px) scale(0.95);
+    pointer-events: none;
+    transition: opacity 0.25s ease, transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.personalizar-panel.open {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    pointer-events: auto;
+}
+.pers-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+.pers-label {
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text3);
+    min-width: 48px;
+}
+.pers-swatches {
+    display: flex;
+    gap: 0.45rem;
+    align-items: center;
+}
+.pers-swatch {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: 2.5px solid transparent;
+    cursor: pointer;
+    padding: 0;
+    transition: transform 0.15s ease, border-color 0.15s ease;
+    flex-shrink: 0;
+}
+.pers-swatch:hover { transform: scale(1.2); }
+.pers-swatch.active { border-color: var(--text); }
+.pers-sizes {
+    display: flex;
+    gap: 0.28rem;
+}
+.pers-size-btn {
+    width: 34px;
+    height: 28px;
+    border-radius: 8px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text2);
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 0.72rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.pers-size-btn:hover { background: var(--surface); border-color: var(--accent); color: var(--accent); }
+.pers-size-btn.active { background: var(--accent); border-color: var(--accent); color: #000; }
+
+/* Selector Dark / Light Mode */
+.pers-theme-modes {
+    display: flex;
+    gap: 0.3rem;
+    align-items: center;
+}
+.pers-theme-mode {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 0.64rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--text);
+    opacity: 0.32;
+    padding: 0.28rem 0.55rem;
+    border-radius: 6px;
+    transition: opacity 0.2s ease, background 0.2s ease, color 0.2s ease;
+    white-space: nowrap;
+}
+.pers-theme-mode:hover:not(.active) {
+    opacity: 0.65;
+    background: var(--surface2);
+}
+.pers-theme-mode.active {
+    opacity: 1;
+    color: var(--accent);
+    background: var(--surface2);
+}
+
 /* ── Smart Floating Menu (SFM) ──────────────────────────────────────────── */
 .sfm-group {
     position: fixed;
@@ -1483,6 +1377,10 @@ body.light-mode .save-panel-popup .sp-tag-editor:focus-within {
     flex-direction: column;
     align-items: flex-end;
     gap: 8px;
+    pointer-events: none;
+}
+.sfm-trigger {
+    pointer-events: auto;
 }
 
 .sfm-menu {

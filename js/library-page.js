@@ -1,5 +1,5 @@
 import API from './api.js';
-import { initTheme } from './ui.js';
+import { initTheme, initSFM } from './ui.js';
 
 // ── State ──────────────────────────────────────────────────────
 let songs        = [];
@@ -47,6 +47,7 @@ document.addEventListener('DOMContentLoaded', init);
 
 async function init() {
     initTheme();
+    initSFM();
     loadTagColors();
     setupNav();
     setupMobileSidebar();

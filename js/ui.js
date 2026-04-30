@@ -116,284 +116,100 @@ export function renderToneGrid(container, mode, onSelect) {
     });
 }
 
-function _checkSFMCollision(fabEl) {
-    const sfmTrigger = document.getElementById('sfmTrigger');
-    const sfmGroup   = document.getElementById('sfmGroup');
-    if (!sfmTrigger || !sfmGroup || !fabEl) return;
-    requestAnimationFrame(() => {
-        const PAD = 10;
-        const t = sfmTrigger.getBoundingClientRect();
-        const f = fabEl.getBoundingClientRect();
-        const overlap = t.right + PAD > f.left && t.left - PAD < f.right &&
-                        t.bottom + PAD > f.top  && t.top  - PAD < f.bottom;
-        if (overlap) {
-            sfmGroup.style.bottom = (window.innerHeight - f.top + PAD) + 'px';
-        } else {
-            sfmGroup.style.bottom = '';
-        }
-    });
-}
-
-/**
- * Posiciona un picker a la izquierda del botón toggle, clampeado al viewport.
- * Los pickers son position:fixed, así que sus dimensiones son siempre accesibles.
- */
-function positionPicker(pickerEl, toggleEl) {
-    const PAD = 12;
-    const pw = pickerEl.offsetWidth  || 200;
-    const ph = pickerEl.offsetHeight || 130;
-    const tRect = toggleEl.getBoundingClientRect();
-
-    // Intentar a la derecha primero; si no cabe, a la izquierda
-    // (el FAB puede estar en cualquier lado de la pantalla tras arrastrarlo)
-    let left = tRect.right + PAD;
-    if (left + pw > window.innerWidth - PAD) left = tRect.left - pw - PAD;
-
-    let top = tRect.top + tRect.height / 2 - ph / 2;
-
-    left = Math.max(PAD, Math.min(left, window.innerWidth  - pw - PAD));
-    top  = Math.max(PAD, Math.min(top,  window.innerHeight - ph - PAD));
-
-    pickerEl.style.left = left + 'px';
-    pickerEl.style.top  = top  + 'px';
-}
-
-/**
- * LÓGICA DE TEMAS, ACCESIBILIDAD Y FAB COMPLETA
- */
 export function initTheme() {
-    const body        = document.body;
-    const themeToggle  = document.getElementById('themeToggle');
-    const paletteToggle = document.getElementById('paletteToggle');
-    const palettePicker = document.getElementById('palettePicker');
-    const a11yToggle   = document.getElementById('a11yToggle');
-    const a11yPicker   = document.getElementById('a11yPicker');
+    const body = document.body;
 
-    // Restaurar tema
+    // Restaurar ajustes desde localStorage
     if (localStorage.getItem('theme') === 'light') body.classList.add('light-mode');
-
-    // Restaurar tamaño de texto guardado
     const savedSize = localStorage.getItem('chordSize') || '';
     if (savedSize) document.documentElement.setAttribute('data-chord-size', savedSize);
+    body.setAttribute('data-palette', localStorage.getItem('palette') || '0');
 
-    // ── Paletas ──────────────────────────────────────────────────────────────
+    // ── Selectores Dark / Light Mode ─────────────────────────────────────────
+    const btnDark  = document.getElementById('themeDark');
+    const btnLight = document.getElementById('themeLight');
+
+    function syncThemeBtns() {
+        const isLight = body.classList.contains('light-mode');
+        btnDark?.classList.toggle('active', !isLight);
+        btnLight?.classList.toggle('active',  isLight);
+    }
+
+    btnDark?.addEventListener('click', () => {
+        body.classList.remove('light-mode');
+        localStorage.setItem('theme', 'dark');
+        syncThemeBtns();
+    });
+
+    btnLight?.addEventListener('click', () => {
+        body.classList.add('light-mode');
+        localStorage.setItem('theme', 'light');
+        syncThemeBtns();
+    });
+
+    syncThemeBtns();
+
+    // ── Swatches de paleta ───────────────────────────────────────────────────
     const PALETTES = [
         { name: 'Starlight',   swatch: '#c8a96e' },
         { name: 'Artic',       swatch: 'rgb(96, 165, 250)' },
         { name: 'Ambar Solar', swatch: 'rgb(251, 146, 60)' },
         { name: 'Menta Zen',   swatch: 'rgb(74, 222, 128)' },
     ];
-    PALETTES.forEach((pal, i) => {
-        const opt = document.createElement('div');
-        opt.className = 'palette-option';
-        opt.innerHTML = `<span class="pal-swatch" style="background:${pal.swatch}"></span><span class="pal-name">${pal.name}</span>`;
-        opt.onclick = () => {
-            body.setAttribute('data-palette', i);
-            localStorage.setItem('palette', i);
-            palettePicker?.classList.remove('open');
-        };
-        palettePicker?.appendChild(opt);
-    });
-    body.setAttribute('data-palette', localStorage.getItem('palette') || '0');
-
-    // Sacar el palettePicker del control-panel por la misma razón que a11yPicker
-    if (palettePicker) document.body.appendChild(palettePicker);
-
-    // ── Picker de accesibilidad (tamaños de texto) ───────────────────────────
-    if (a11yPicker) {
-        const A11Y_SIZES = [
-            { label: 'a',    size: 'xs', title: 'Extra pequeño (12px)' },
-            { label: 'A',    size: 'sm', title: 'Pequeño (14px)' },
-            { label: 'Aa',   size: '',   title: 'Normal (16px)' },
-            { label: 'A⁺',   size: 'lg', title: 'Grande (18px)' },
-            { label: 'A⁺⁺',  size: 'xl', title: 'Extra grande (20px)' },
-        ];
-
-        const lbl = document.createElement('span');
-        lbl.className = 'a11y-label';
-        lbl.textContent = 'Tamaño de texto';
-        a11yPicker.appendChild(lbl);
-
-        const row = document.createElement('div');
-        row.className = 'a11y-sizes';
-
-        A11Y_SIZES.forEach(({ label, size, title }) => {
+    const paletteRow = document.getElementById('sfmPaletteRow');
+    if (paletteRow) {
+        const savedPalette = parseInt(localStorage.getItem('palette') || '0');
+        PALETTES.forEach((pal, i) => {
             const btn = document.createElement('button');
-            btn.className = 'a11y-size-btn' + (savedSize === size ? ' selected' : '');
+            btn.type = 'button';
+            btn.className = 'pers-swatch' + (i === savedPalette ? ' active' : '');
+            btn.style.background = pal.swatch;
+            btn.title = pal.name;
+            btn.addEventListener('click', () => {
+                body.setAttribute('data-palette', i);
+                localStorage.setItem('palette', i);
+                paletteRow.querySelectorAll('.pers-swatch').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+            });
+            paletteRow.appendChild(btn);
+        });
+    }
+
+    // ── Botones de tamaño de texto ───────────────────────────────────────────
+    const A11Y_SIZES = [
+        { label: 'a',   size: 'xs' },
+        { label: 'A',   size: 'sm' },
+        { label: 'Aa',  size: ''   },
+        { label: 'A⁺',  size: 'lg' },
+        { label: 'A⁺⁺', size: 'xl' },
+    ];
+    const sizeRow = document.getElementById('sfmSizeRow');
+    if (sizeRow) {
+        A11Y_SIZES.forEach(({ label, size }) => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'pers-size-btn' + (savedSize === size ? ' active' : '');
             btn.textContent = label;
-            btn.title = title;
-            btn.onclick = () => {
+            btn.addEventListener('click', () => {
                 if (size) document.documentElement.setAttribute('data-chord-size', size);
                 else      document.documentElement.removeAttribute('data-chord-size');
                 localStorage.setItem('chordSize', size);
-                row.querySelectorAll('.a11y-size-btn').forEach(b => b.classList.remove('selected'));
-                btn.classList.add('selected');
-            };
-            row.appendChild(btn);
-        });
-        a11yPicker.appendChild(row);
-
-        // Sacar el picker del control-panel (que tiene transform) para que
-        // position:fixed sea relativo al viewport y no al panel transformado
-        document.body.appendChild(a11yPicker);
-    }
-
-    // ── Handlers de los toggles del panel ────────────────────────────────────
-
-    // Tema claro/oscuro
-    themeToggle?.addEventListener('click', () => {
-        body.classList.toggle('light-mode');
-        localStorage.setItem('theme', body.classList.contains('light-mode') ? 'light' : 'dark');
-        palettePicker?.classList.remove('open');
-        a11yPicker?.classList.remove('open');
-    });
-
-    // Paleta de colores
-    paletteToggle?.addEventListener('click', () => {
-        const isOpen = palettePicker?.classList.contains('open');
-        a11yPicker?.classList.remove('open');
-        if (palettePicker) {
-            if (!isOpen) { positionPicker(palettePicker, paletteToggle); palettePicker.classList.add('open'); }
-            else          { palettePicker.classList.remove('open'); }
-        }
-    });
-
-    // Accesibilidad
-    a11yToggle?.addEventListener('click', () => {
-        const isOpen = a11yPicker?.classList.contains('open');
-        palettePicker?.classList.remove('open');
-        if (a11yPicker) {
-            if (!isOpen) { positionPicker(a11yPicker, a11yToggle); a11yPicker.classList.add('open'); }
-            else          { a11yPicker.classList.remove('open'); }
-        }
-    });
-
-    // Cerrar pickers al hacer clic fuera de ellos
-    document.addEventListener('click', (e) => {
-        if (a11yPicker && !a11yPicker.contains(e.target) && !a11yToggle?.contains(e.target)) {
-            a11yPicker.classList.remove('open');
-        }
-        if (palettePicker && !palettePicker.contains(e.target) && !paletteToggle?.contains(e.target)) {
-            palettePicker.classList.remove('open');
-        }
-    });
-
-    // ── Lógica de Arrastre del Botón FAB (Mantenida Original) ────────────────
-    const floatingGroup = document.getElementById('floatingControlGroup');
-    const controlFab    = document.getElementById('controlFab');
-    const dragState     = { active: false, hasMoved: false, startX: 0, startY: 0, startBottom: 0, startRight: 0 };
-    const PAD = 16;
-
-    // Detecta si el panel debe abrirse hacia abajo (FAB cerca del borde superior)
-    function updatePanelDirection() {
-        if (!floatingGroup) return;
-        const fabBottom = parseFloat(floatingGroup.style.bottom) || PAD;
-        const fabTopY   = window.innerHeight - fabBottom - 54; // 54 = altura del FAB
-        const PANEL_SAFE = 286; // max-height(260) + gap(10) + padding(16)
-        floatingGroup.classList.toggle('panel-below', fabTopY < PANEL_SAFE);
-    }
-
-    if (controlFab) {
-        controlFab.addEventListener('mousedown', (e) => {
-            const rect = floatingGroup.getBoundingClientRect();
-            dragState.startBottom = window.innerHeight - rect.bottom;
-            dragState.startRight  = window.innerWidth  - rect.right;
-            dragState.active = true; dragState.hasMoved = false;
-            dragState.startX = e.clientX; dragState.startY = e.clientY;
-        });
-
-        document.addEventListener('mousemove', (e) => {
-            if (!dragState.active) return;
-            const dx = e.clientX - dragState.startX;
-            const dy = e.clientY - dragState.startY;
-            if (Math.abs(dx) > 3 || Math.abs(dy) > 3) dragState.hasMoved = true;
-            floatingGroup.style.bottom = Math.max(PAD, Math.min(dragState.startBottom - dy, window.innerHeight - 60 - PAD)) + 'px';
-            floatingGroup.style.right  = Math.max(PAD, Math.min(dragState.startRight  - dx, window.innerWidth  - 60 - PAD)) + 'px';
-            updatePanelDirection();
-        });
-
-        document.addEventListener('mouseup', () => {
-            if (!dragState.active) return;
-            dragState.active = false;
-            if (dragState.hasMoved) localStorage.setItem('controlPos', JSON.stringify({ bottom: floatingGroup.style.bottom, right: floatingGroup.style.right }));
-            _checkSFMCollision(floatingGroup);
-        });
-
-        controlFab.onclick = () => { if (!dragState.hasMoved) floatingGroup.classList.toggle('open'); };
-
-        // ── Soporte táctil: el FAB debe poder arrastrarse en móvil ──────────
-        controlFab.addEventListener('touchstart', (e) => {
-            e.preventDefault(); // impide scroll desde el inicio del gesto
-            const touch = e.touches[0];
-            const rect = floatingGroup.getBoundingClientRect();
-            dragState.startBottom = window.innerHeight - rect.bottom;
-            dragState.startRight  = window.innerWidth  - rect.right;
-            dragState.active = true; dragState.hasMoved = false;
-            dragState.startX = touch.clientX; dragState.startY = touch.clientY;
-        }, { passive: false });
-
-        document.addEventListener('touchmove', (e) => {
-            if (!dragState.active) return;
-            e.preventDefault(); // evita scroll de página mientras se arrastra el FAB
-            const touch = e.touches[0];
-            const dx = touch.clientX - dragState.startX;
-            const dy = touch.clientY - dragState.startY;
-            if (Math.abs(dx) > 3 || Math.abs(dy) > 3) dragState.hasMoved = true;
-            floatingGroup.style.bottom = Math.max(PAD, Math.min(dragState.startBottom - dy, window.innerHeight - 60 - PAD)) + 'px';
-            floatingGroup.style.right  = Math.max(PAD, Math.min(dragState.startRight  - dx, window.innerWidth  - 60 - PAD)) + 'px';
-            updatePanelDirection();
-        }, { passive: false });
-
-        document.addEventListener('touchend', (e) => {
-            if (!dragState.active) return;
-            const wasMoved = dragState.hasMoved;
-            dragState.active = false;
-            if (wasMoved) {
-                localStorage.setItem('controlPos', JSON.stringify({ bottom: floatingGroup.style.bottom, right: floatingGroup.style.right }));
-                _checkSFMCollision(floatingGroup);
-            } else {
-                floatingGroup.classList.toggle('open'); // tap → abrir/cerrar panel
-            }
-            // Evita que el mousedown sintético posterior resetee dragState.hasMoved
-            e.preventDefault();
+                sizeRow.querySelectorAll('.pers-size-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+            });
+            sizeRow.appendChild(btn);
         });
     }
-
-    // Restaurar posición del FAB clampeada al viewport actual.
-    // Sin el clamp, una posición guardada en escritorio (p.ej. right:580px)
-    // deja el FAB fuera de pantalla en móvil.
-    const savedPos = JSON.parse(localStorage.getItem('controlPos') || '{}');
-    if (savedPos.bottom && floatingGroup) {
-        const clampedBottom = Math.max(PAD, Math.min(parseFloat(savedPos.bottom), window.innerHeight - 60 - PAD));
-        const clampedRight  = Math.max(PAD, Math.min(parseFloat(savedPos.right),  window.innerWidth  - 60 - PAD));
-        floatingGroup.style.bottom = clampedBottom + 'px';
-        floatingGroup.style.right  = clampedRight  + 'px';
-        // Si la posición fue corregida, actualizar localStorage para este viewport
-        if (clampedRight !== parseFloat(savedPos.right) || clampedBottom !== parseFloat(savedPos.bottom)) {
-            localStorage.setItem('controlPos', JSON.stringify({ bottom: clampedBottom + 'px', right: clampedRight + 'px' }));
-        }
-    }
-    updatePanelDirection();
-    _checkSFMCollision(floatingGroup);
-
-    // Re-clampear al cambiar tamaño de ventana (rotación móvil, resize escritorio)
-    window.addEventListener('resize', () => {
-        if (!floatingGroup) return;
-        const b = parseFloat(floatingGroup.style.bottom) || PAD;
-        const r = parseFloat(floatingGroup.style.right)  || PAD;
-        floatingGroup.style.bottom = Math.max(PAD, Math.min(b, window.innerHeight - 60 - PAD)) + 'px';
-        floatingGroup.style.right  = Math.max(PAD, Math.min(r, window.innerWidth  - 60 - PAD)) + 'px';
-        updatePanelDirection();
-        _checkSFMCollision(floatingGroup);
-    });
 }
 
 export function initSFM(onOpenLibrary, onSaveScan, onOpenSetlist) {
-    const group   = document.getElementById('sfmGroup');
-    const trigger = document.getElementById('sfmTrigger');
-    const btnLib  = document.getElementById('sfmOpenLibrary');
-    const btnSave = document.getElementById('sfmSaveScan');
+    const group      = document.getElementById('sfmGroup');
+    const trigger    = document.getElementById('sfmTrigger');
+    const btnLib     = document.getElementById('sfmOpenLibrary');
+    const btnSave    = document.getElementById('sfmSaveScan');
     const btnSetlist = document.getElementById('sfmOpenSetlist');
+    const btnPers    = document.getElementById('sfmPersonalizar');
+    const persPanel  = document.getElementById('personalizarPanel');
     if (!group || !trigger) return;
 
     const closeSFM = () => {
@@ -401,23 +217,41 @@ export function initSFM(onOpenLibrary, onSaveScan, onOpenSetlist) {
         trigger.setAttribute('aria-expanded', 'false');
     };
 
+    const closePers = () => {
+        persPanel?.classList.remove('open');
+        persPanel?.setAttribute('aria-hidden', 'true');
+    };
+
     trigger.addEventListener('click', (e) => {
         e.stopPropagation();
+        closePers();
         const isOpen = group.classList.toggle('open');
         trigger.setAttribute('aria-expanded', String(isOpen));
     });
 
     document.addEventListener('click', (e) => {
-        if (!group.contains(e.target)) closeSFM();
+        if (!group.contains(e.target) && !persPanel?.contains(e.target)) {
+            closeSFM();
+            closePers();
+        }
     });
 
     document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') closeSFM();
+        if (e.key === 'Escape') { closeSFM(); closePers(); }
     });
 
-    btnLib?.addEventListener('click', () => { closeSFM(); onOpenLibrary(); });
-    btnSave?.addEventListener('click', () => { closeSFM(); onSaveScan(); });
+    btnLib?.addEventListener('click', () => { closeSFM(); onOpenLibrary?.(); });
+    btnSave?.addEventListener('click', () => { closeSFM(); onSaveScan?.(); });
     btnSetlist?.addEventListener('click', () => { closeSFM(); onOpenSetlist?.(); });
+
+    btnPers?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        closeSFM();
+        if (persPanel) {
+            const isOpen = persPanel.classList.toggle('open');
+            persPanel.setAttribute('aria-hidden', String(!isOpen));
+        }
+    });
 }
 
 export function updateSFMSaveState(hasData) {
