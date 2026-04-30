@@ -449,3 +449,140 @@ export function closeOverlay(overlay, animatedEl) {
     animatedEl?.addEventListener('transitionend', onEnd);
     setTimeout(cleanup, 500);
 }
+
+// ── Tag chip editor ───────────────────────────────────────────────────────────
+const TAG_PALETTE = ['#e74c3c','#e67e22','#f1c40f','#2ecc71','#1abc9c','#3498db','#9b59b6','#e91e8c','#95a5a6'];
+
+function _loadTagColors() {
+    try { return JSON.parse(localStorage.getItem('tagColors') || '{}'); } catch { return {}; }
+}
+function _saveTagColors(colors) {
+    localStorage.setItem('tagColors', JSON.stringify(colors));
+}
+
+/**
+ * Mounts a tag chip editor onto `chipsEl`/`inputEl`/`hiddenEl`.
+ * Reads and writes `tagColors` from localStorage (shared with library-page.js).
+ * Returns { reset(), getTags() }.
+ */
+export function createTagEditor(chipsEl, inputEl, hiddenEl) {
+    let editingTags   = [];
+    let activePalette = null;
+
+    function renderChips() {
+        const tagColors = _loadTagColors();
+        if (!chipsEl) return;
+        chipsEl.innerHTML = '';
+        editingTags.forEach((tag, i) => {
+            const color = tagColors[tag] || null;
+            const chip  = document.createElement('span');
+            chip.className = 'lib-tag-chip';
+            if (color) chip.style.setProperty('--chip-color', color);
+
+            const dot = document.createElement('button');
+            dot.type = 'button';
+            dot.className = 'lib-tag-chip-dot';
+            dot.title = 'Color de etiqueta';
+            if (color) dot.style.background = color;
+            dot.addEventListener('click', e => { e.stopPropagation(); openColorPalette(dot, tag); });
+
+            const label = document.createElement('span');
+            label.className = 'lib-tag-chip-label';
+            label.textContent = tag;
+
+            const rm = document.createElement('button');
+            rm.type = 'button';
+            rm.className = 'lib-tag-chip-remove';
+            rm.innerHTML = '&times;';
+            rm.addEventListener('click', () => { editingTags.splice(i, 1); renderChips(); });
+
+            chip.append(dot, label, rm);
+            chipsEl.appendChild(chip);
+        });
+        if (hiddenEl) hiddenEl.value = editingTags.join(', ');
+    }
+
+    function openColorPalette(dotEl, tagName) {
+        activePalette?.remove();
+        activePalette = null;
+
+        const tagColors = _loadTagColors();
+        const palette   = document.createElement('div');
+        palette.className = 'lib-color-palette';
+
+        const none = document.createElement('button');
+        none.type = 'button';
+        none.className = 'lib-color-swatch lib-color-swatch--none' + (!tagColors[tagName] ? ' active' : '');
+        none.title = 'Sin color';
+        none.textContent = '✕';
+        none.addEventListener('click', e => {
+            e.stopPropagation();
+            const c = _loadTagColors(); delete c[tagName]; _saveTagColors(c);
+            renderChips(); palette.remove(); activePalette = null;
+        });
+        palette.appendChild(none);
+
+        TAG_PALETTE.forEach(color => {
+            const sw = document.createElement('button');
+            sw.type = 'button';
+            sw.className = 'lib-color-swatch' + (tagColors[tagName] === color ? ' active' : '');
+            sw.style.background = color;
+            sw.title = color;
+            sw.addEventListener('click', e => {
+                e.stopPropagation();
+                const c = _loadTagColors(); c[tagName] = color; _saveTagColors(c);
+                renderChips(); palette.remove(); activePalette = null;
+            });
+            palette.appendChild(sw);
+        });
+
+        document.body.appendChild(palette);
+        activePalette = palette;
+
+        const rect = dotEl.getBoundingClientRect();
+        palette.style.top  = (rect.bottom + 6) + 'px';
+        palette.style.left = rect.left + 'px';
+
+        requestAnimationFrame(() => {
+            const pr = palette.getBoundingClientRect();
+            if (pr.right  > window.innerWidth  - 8) palette.style.left = (window.innerWidth  - pr.width  - 8) + 'px';
+            if (pr.bottom > window.innerHeight - 8) palette.style.top  = (rect.top - pr.height - 6) + 'px';
+        });
+
+        const outside = e => {
+            if (!palette.contains(e.target) && e.target !== dotEl) {
+                palette.remove(); activePalette = null;
+                document.removeEventListener('click', outside);
+            }
+        };
+        setTimeout(() => document.addEventListener('click', outside), 0);
+    }
+
+    if (inputEl) {
+        inputEl.addEventListener('keydown', e => {
+            if ((e.key === 'Enter' || e.key === ',') && inputEl.value.trim()) {
+                e.preventDefault();
+                const tag = inputEl.value.trim().replace(/,+$/, '');
+                if (tag && !editingTags.includes(tag)) { editingTags.push(tag); renderChips(); }
+                inputEl.value = '';
+            }
+            if (e.key === 'Backspace' && !inputEl.value && editingTags.length) {
+                editingTags.pop(); renderChips();
+            }
+        });
+    }
+
+    chipsEl?.parentElement?.addEventListener('click', e => {
+        if (!e.target.closest('.lib-tag-chip')) inputEl?.focus();
+    });
+
+    return {
+        reset() {
+            editingTags = [];
+            activePalette?.remove();
+            activePalette = null;
+            renderChips();
+        },
+        getTags() { return [...editingTags]; },
+    };
+}

@@ -144,7 +144,11 @@
                     <option value="A#">La# (A#)</option><option value="B">Si (B)</option>
                 </select>
                 <input id="libEditBpm"       class="save-input" type="number" placeholder="BPM" min="1" max="300">
-                <input id="libEditEtiquetas" class="save-input" type="text" placeholder="Etiquetas (separadas por coma)">
+                <div class="lib-tag-editor" id="libTagEditor">
+                    <div class="lib-tag-chips" id="libTagChips"></div>
+                    <input type="text" id="libTagInput" class="lib-tag-input-field" placeholder="Añadir etiqueta y Enter…" autocomplete="off">
+                </div>
+                <input type="hidden" id="libEditEtiquetas">
                 <textarea id="libEditNotas"  class="save-input" rows="3" placeholder="Notas adicionales" style="resize:vertical;"></textarea>
                 <div style="display:flex;gap:0.6rem;">
                     <button type="submit"  class="btn-action" style="flex:1;">Guardar cambios</button>

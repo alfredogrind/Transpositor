@@ -450,17 +450,151 @@ body:not(.light-mode) .lib-icon-sun { display: none; }
 
 .lib-tag {
     display: inline-block;
-    background: color-mix(in srgb, var(--accent) 14%, transparent);
-    border: 1px solid color-mix(in srgb, var(--accent) 28%, transparent);
+    background: color-mix(in srgb, var(--chip-color, var(--accent)) 14%, transparent);
+    border: 1px solid color-mix(in srgb, var(--chip-color, var(--accent)) 28%, transparent);
     border-radius: 5px;
     padding: 0.1rem 0.38rem;
     font-size: 0.7rem;
-    color: var(--accent);
+    color: var(--chip-color, var(--accent));
     font-weight: 600;
     margin-right: 0.2rem;
 }
 
 .lib-tags-wrap { max-width: 160px; overflow: hidden; }
+
+/* ── Tag chip editor ────────────────────────────────── */
+.lib-tag-editor {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0.38rem 0.55rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+    align-items: center;
+    min-height: 42px;
+    background: var(--surface2);
+    cursor: text;
+    transition: border-color 0.2s;
+}
+.lib-tag-editor:focus-within { border-color: var(--accent); }
+
+.lib-tag-chips { display: contents; }
+
+.lib-tag-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.28rem;
+    padding: 0.18rem 0.35rem 0.18rem 0.22rem;
+    border-radius: 20px;
+    font-size: 0.73rem;
+    font-weight: 600;
+    background: color-mix(in srgb, var(--chip-color, var(--accent)) 14%, var(--surface2));
+    border: 1px solid color-mix(in srgb, var(--chip-color, var(--accent)) 30%, transparent);
+    color: var(--text);
+    white-space: nowrap;
+    transition: background 0.15s;
+}
+
+.lib-tag-chip-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--chip-color, var(--accent));
+    cursor: pointer;
+    flex-shrink: 0;
+    border: none;
+    padding: 0;
+    transition: transform 0.15s, box-shadow 0.15s;
+}
+.lib-tag-chip-dot:hover {
+    transform: scale(1.35);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--chip-color, var(--accent)) 35%, transparent);
+}
+
+.lib-tag-chip-label { line-height: 1; }
+
+.lib-tag-chip-remove {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text3);
+    font-size: 0.78rem;
+    padding: 0;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    transition: color 0.15s;
+}
+.lib-tag-chip-remove:hover { color: #e74c3c; }
+
+.lib-tag-input-field {
+    border: none;
+    background: transparent;
+    color: var(--text);
+    font-size: 0.82rem;
+    font-family: inherit;
+    outline: none;
+    flex: 1;
+    min-width: 90px;
+    padding: 0.1rem 0;
+}
+.lib-tag-input-field::placeholder { color: var(--text3); }
+
+/* ── Color palette popup ────────────────────────────── */
+.lib-color-palette {
+    position: fixed;
+    z-index: 99999;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 0.55rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    width: 172px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.35);
+    animation: tag-palette-in 0.18s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@keyframes tag-palette-in {
+    from { opacity: 0; transform: scale(0.88) translateY(-4px); }
+    to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+.lib-color-swatch {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: transform 0.14s, border-color 0.14s;
+    padding: 0;
+    flex-shrink: 0;
+}
+.lib-color-swatch:hover { transform: scale(1.2); }
+.lib-color-swatch.active { border-color: rgba(255,255,255,0.85); }
+.lib-color-swatch--none {
+    background: var(--surface2);
+    border-color: var(--border);
+    color: var(--text3);
+    font-size: 0.7rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.lib-color-swatch--none:hover { border-color: #e74c3c; color: #e74c3c; transform: scale(1.1); }
+
+/* ── Tag color accents on rows & cards ──────────────── */
+tr[data-accent] { background: color-mix(in srgb, var(--row-color) 5%, transparent) !important; }
+tr[data-accent] td:first-child { box-shadow: inset 3px 0 0 var(--row-color); }
+tr[data-accent]:hover { background: color-mix(in srgb, var(--row-color) 10%, var(--surface)) !important; }
+
+.lib-grid-card[data-accent] {
+    border-left: 3px solid var(--card-color);
+    background: linear-gradient(
+        135deg,
+        color-mix(in srgb, var(--card-color) 9%, var(--surface)),
+        var(--surface) 60%
+    );
+}
 
 /* ── Grid view ─────────────────────────────────────── */
 .lib-songs-grid {
@@ -616,4 +750,12 @@ body:not(.light-mode) .lib-icon-sun { display: none; }
 .lib-shell {
     animation: page-enter 0.5s cubic-bezier(0.4, 0, 0.2, 1) both;
     will-change: opacity, transform;
+}
+
+/* ── Real-time search fade ──────────────────────────────────────── */
+#libSongsList {
+    transition: opacity 0.12s ease;
+}
+#libSongsList.lib-filtering {
+    opacity: 0.45;
 }

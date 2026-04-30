@@ -893,6 +893,12 @@ body.light-mode .save-panel-popup {
 
 .save-panel-popup .save-input::placeholder { color: var(--text3); }
 
+/* Tag editor: contener dentro del panel sin desbordar */
+.save-panel-popup .sp-tag-editor {
+    height: auto;
+    min-height: 44px;
+}
+
 .save-panel-popup .save-input:hover:not(:focus) {
     border-color: rgba(255, 255, 255, 0.20);
     background: rgba(255, 255, 255, 0.09);
@@ -1011,6 +1017,133 @@ body.light-mode .save-panel-popup .save-input:focus {
 .save-input::placeholder {
     color: var(--text3);
 }
+
+.save-input--bpm::-webkit-outer-spin-button,
+.save-input--bpm::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.save-input--bpm[type=number] { -moz-appearance: textfield; }
+
+/* ── Tag chip editor (save panel) ───────────────────── */
+.sp-tag-editor {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.35rem;
+    min-height: 44px;
+    height: auto;
+    padding: 0.5rem 0.9rem;
+    cursor: text;
+}
+.save-panel-popup .sp-tag-editor:focus-within {
+    border-color: rgba(200, 169, 110, 0.65);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+    background: rgba(255, 255, 255, 0.09);
+}
+body.light-mode .save-panel-popup .sp-tag-editor:focus-within {
+    border-color: rgba(200, 169, 110, 0.65);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+    background: rgba(0, 0, 0, 0.05);
+}
+
+.sp-tag-chips { display: contents; }
+.sp-tag-input {
+    border: none;
+    background: transparent;
+    color: var(--text);
+    font-size: 0.85rem;
+    font-family: inherit;
+    outline: none;
+    flex: 1;
+    min-width: 80px;
+    padding: 0.1rem 0;
+}
+.sp-tag-input::placeholder { color: var(--text3); }
+
+/* ── Tag chips (shared component, also used via library.css) ── */
+.lib-tag-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.28rem;
+    padding: 0.18rem 0.35rem 0.18rem 0.22rem;
+    border-radius: 20px;
+    font-size: 0.73rem;
+    font-weight: 600;
+    background: color-mix(in srgb, var(--chip-color, var(--accent)) 14%, var(--surface2));
+    border: 1px solid color-mix(in srgb, var(--chip-color, var(--accent)) 30%, transparent);
+    color: var(--text);
+    white-space: nowrap;
+    transition: background 0.15s;
+}
+.lib-tag-chip-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--chip-color, var(--accent));
+    cursor: pointer;
+    flex-shrink: 0;
+    border: none;
+    padding: 0;
+    transition: transform 0.15s, box-shadow 0.15s;
+}
+.lib-tag-chip-dot:hover {
+    transform: scale(1.35);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--chip-color, var(--accent)) 35%, transparent);
+}
+.lib-tag-chip-label { line-height: 1; }
+.lib-tag-chip-remove {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text3);
+    font-size: 0.78rem;
+    padding: 0;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    transition: color 0.15s;
+}
+.lib-tag-chip-remove:hover { color: #e74c3c; }
+
+/* ── Color palette popup (shared component) ─────────── */
+.lib-color-palette {
+    position: fixed;
+    z-index: 99999;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 0.55rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    width: 172px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.35);
+    animation: tag-palette-in 0.18s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@keyframes tag-palette-in {
+    from { opacity: 0; transform: scale(0.88) translateY(-4px); }
+    to   { opacity: 1; transform: scale(1)    translateY(0); }
+}
+.lib-color-swatch {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: transform 0.14s, border-color 0.14s;
+    padding: 0;
+    flex-shrink: 0;
+}
+.lib-color-swatch:hover  { transform: scale(1.2); }
+.lib-color-swatch.active { border-color: rgba(255,255,255,0.85); }
+.lib-color-swatch--none {
+    background: var(--surface2);
+    border-color: var(--border);
+    color: var(--text3);
+    font-size: 0.7rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.lib-color-swatch--none:hover { border-color: #e74c3c; color: #e74c3c; transform: scale(1.1); }
 
 /* ── Biblioteca ─────────────────────────────────────── */
 .lib-toggle-btn {

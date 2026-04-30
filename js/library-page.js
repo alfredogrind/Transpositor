@@ -14,6 +14,12 @@ let addingToSetlistId  = null;
 let selectedSetlistId  = null;
 let debounceTimer      = null;
 
+// ── Tag colors ─────────────────────────────────────────────────
+let tagColors    = {};
+let editingTags  = [];
+let activePalette = null;
+const TAG_PALETTE = ['#e74c3c','#e67e22','#f1c40f','#2ecc71','#1abc9c','#3498db','#9b59b6','#e91e8c','#95a5a6'];
+
 // ── DOM refs ───────────────────────────────────────────────────
 const $ = id => document.getElementById(id);
 const libSidebar          = $('libSidebar');
@@ -41,11 +47,13 @@ document.addEventListener('DOMContentLoaded', init);
 
 async function init() {
     initTheme();
+    loadTagColors();
     setupNav();
     setupMobileSidebar();
     setupToolbar();
     setupViewBtns();
     setupModals();
+    setupTagEditor();
     setupSongActions();
     setupSetlistActions();
     updateViewBtns();
@@ -132,19 +140,33 @@ async function loadFavs() {
 async function loadSongs() {
     showSkeletons();
     try {
-        const params = { ...filters };
-        if (currentSection === 'favoritos') params.favoritos = '1';
         if (currentSection === 'setlists' && selectedSetlistId) {
             const sl = await API.obtenerSetlist(selectedSetlistId);
             songs = sl.canciones || [];
             renderSetlistSongs(songs);
             return;
         }
+        // q se aplica client-side; key/sort/favoritos van al servidor
+        const params = {};
+        if (filters.key)                        params.key      = filters.key;
+        if (filters.sort)                       params.sort     = filters.sort;
+        if (currentSection === 'favoritos')     params.favoritos = '1';
         songs = await API.listar(params);
-        renderSongs(songs);
+        renderSongs(applySearchFilter(songs));
     } catch (_) {
         libSongsList.innerHTML = `<div class="lib-empty"><p>No se pudo cargar las canciones.</p></div>`;
     }
+}
+
+function applySearchFilter(data) {
+    const q = filters.q.trim().toLowerCase();
+    if (!q) return data;
+    return data.filter(c => {
+        const tags = Array.isArray(c.etiquetas) ? c.etiquetas.join(' ') : (c.etiquetas || '');
+        return (c.nombre    || '').toLowerCase().includes(q)
+            || (c.cantautor || '').toLowerCase().includes(q)
+            || tags.toLowerCase().includes(q);
+    });
 }
 
 function showSkeletons() {
@@ -225,8 +247,11 @@ function renderSetlistSongs(data) {
 }
 
 function renderTable(data) {
-    const rows = data.map(c => `
-        <tr data-id="${c.id}" title="Doble clic para abrir en el transpositor" class="lib-row-openable">
+    const rows = data.map(c => {
+        const color = getTagColor(c.etiquetas);
+        const accent = color ? `data-accent="${color}" style="--row-color:${color}"` : '';
+        return `
+        <tr data-id="${c.id}" title="Doble clic para abrir en el transpositor" class="lib-row-openable" ${accent}>
             <td class="lib-cell-fav">
                 <button class="lib-fav-btn${favIds.has(c.id) ? ' active' : ''}"
                         data-action="fav" data-id="${c.id}" title="Favorito">♥</button>
@@ -241,7 +266,8 @@ function renderTable(data) {
                 <button class="lib-row-btn" data-action="edit"       data-id="${c.id}" title="Editar">✎</button>
                 <button class="lib-row-btn danger" data-action="delete"  data-id="${c.id}" title="Eliminar">✕</button>
             </td>
-        </tr>`).join('');
+        </tr>`;
+    }).join('');
 
     libSongsList.innerHTML = `
         <div class="lib-table-wrap">
@@ -263,8 +289,11 @@ function renderTable(data) {
 function renderGrid(data) {
     libSongsList.innerHTML = `
         <div class="lib-songs-grid">
-            ${data.map(c => `
-                <div class="lib-grid-card" data-id="${c.id}" title="Doble clic para abrir en el transpositor">
+            ${data.map(c => {
+                const color = getTagColor(c.etiquetas);
+                const accent = color ? `data-accent="${color}" style="--card-color:${color}"` : '';
+                return `
+                <div class="lib-grid-card" data-id="${c.id}" title="Doble clic para abrir en el transpositor" ${accent}>
                     <div class="lib-grid-top">
                         <button class="lib-fav-btn${favIds.has(c.id) ? ' active' : ''}"
                                 data-action="fav" data-id="${c.id}" title="Favorito">♥</button>
@@ -281,7 +310,8 @@ function renderGrid(data) {
                         <button class="lib-row-btn" data-action="edit"       data-id="${c.id}">✎</button>
                         <button class="lib-row-btn danger" data-action="delete" data-id="${c.id}">✕</button>
                     </div>
-                </div>`).join('')}
+                </div>`;
+            }).join('')}
         </div>`;
 }
 
@@ -321,13 +351,15 @@ function openInTranspositor(id) {
 // ── Toolbar ────────────────────────────────────────────────────
 function setupToolbar() {
     libSearch?.addEventListener('input', () => {
+        libSongsList?.classList.add('lib-filtering');
         clearTimeout(debounceTimer);
         debounceTimer = setTimeout(() => {
             filters.q = libSearch.value;
-            loadSongs();
+            renderSongs(applySearchFilter(songs));
+            libSongsList?.classList.remove('lib-filtering');
         }, 300);
     });
-    libFilterKey?.addEventListener('change', () => { filters.key = libFilterKey.value; loadSongs(); });
+    libFilterKey?.addEventListener('change',  () => { filters.key  = libFilterKey.value;  loadSongs(); });
     libFilterSort?.addEventListener('change', () => { filters.sort = libFilterSort.value; loadSongs(); });
 }
 
@@ -488,14 +520,16 @@ function openEditModal(id) {
     const song = songs.find(s => s.id === id);
     if (!song) return;
     editingId = id;
-    $('libEditCantautor').value  = song.cantautor;
-    $('libEditNombre').value     = song.nombre;
-    $('libEditTono').value       = song.tono_original || '';
-    $('libEditBpm').value        = song.bpm || '';
-    $('libEditEtiquetas').value  = (Array.isArray(song.etiquetas) ? song.etiquetas : []).join(', ');
-    $('libEditNotas').value      = song.notas || '';
-    $('libEditMsg').textContent  = '';
+    $('libEditCantautor').value = song.cantautor;
+    $('libEditNombre').value    = song.nombre;
+    $('libEditTono').value      = song.tono_original || '';
+    $('libEditBpm').value       = song.bpm || '';
+    $('libEditNotas').value     = song.notas || '';
+    $('libEditMsg').textContent = '';
+    editingTags = Array.isArray(song.etiquetas) ? [...song.etiquetas] : [];
+    renderChips();
     openModal(modalEditar);
+    setTimeout(() => $('libTagInput')?.focus(), 80);
 }
 
 async function submitEdit(e) {
@@ -629,5 +663,148 @@ function esc(t) {
 
 function tags(etiquetas, max = 4) {
     const arr = Array.isArray(etiquetas) ? etiquetas : [];
-    return arr.slice(0, max).map(e => `<span class="lib-tag">${esc(e)}</span>`).join('');
+    return arr.slice(0, max).map(e => {
+        const color = tagColors[e];
+        const style = color ? ` style="--chip-color:${color}"` : '';
+        return `<span class="lib-tag"${style}>${esc(e)}</span>`;
+    }).join('');
+}
+
+// ── Tag color system ────────────────────────────────────────────
+function loadTagColors() {
+    try { tagColors = JSON.parse(localStorage.getItem('tagColors') || '{}'); } catch { tagColors = {}; }
+}
+
+function saveTagColors() {
+    localStorage.setItem('tagColors', JSON.stringify(tagColors));
+}
+
+function getTagColor(etiquetas) {
+    const arr = Array.isArray(etiquetas) ? etiquetas : [];
+    for (const tag of arr) { if (tagColors[tag]) return tagColors[tag]; }
+    return null;
+}
+
+function renderChips() {
+    const container = $('libTagChips');
+    const hidden    = $('libEditEtiquetas');
+    if (!container) return;
+
+    container.innerHTML = '';
+    editingTags.forEach((tag, i) => {
+        const color = tagColors[tag] || null;
+        const chip  = document.createElement('span');
+        chip.className = 'lib-tag-chip';
+        if (color) chip.style.setProperty('--chip-color', color);
+
+        const dot = document.createElement('button');
+        dot.type = 'button';
+        dot.className = 'lib-tag-chip-dot';
+        dot.title = 'Color de etiqueta';
+        if (color) dot.style.background = color;
+        dot.addEventListener('click', e => { e.stopPropagation(); openColorPalette(dot, tag); });
+
+        const label = document.createElement('span');
+        label.className = 'lib-tag-chip-label';
+        label.textContent = tag;
+
+        const rm = document.createElement('button');
+        rm.type = 'button';
+        rm.className = 'lib-tag-chip-remove';
+        rm.innerHTML = '&times;';
+        rm.addEventListener('click', () => {
+            editingTags.splice(i, 1);
+            renderChips();
+        });
+
+        chip.append(dot, label, rm);
+        container.appendChild(chip);
+    });
+
+    if (hidden) hidden.value = editingTags.join(', ');
+}
+
+function openColorPalette(dotEl, tagName) {
+    activePalette?.remove();
+    activePalette = null;
+
+    const palette = document.createElement('div');
+    palette.className = 'lib-color-palette';
+
+    const none = document.createElement('button');
+    none.type = 'button';
+    none.className = 'lib-color-swatch lib-color-swatch--none' + (!tagColors[tagName] ? ' active' : '');
+    none.title = 'Sin color';
+    none.textContent = '✕';
+    none.addEventListener('click', e => {
+        e.stopPropagation();
+        delete tagColors[tagName];
+        saveTagColors();
+        renderChips();
+        palette.remove(); activePalette = null;
+    });
+    palette.appendChild(none);
+
+    TAG_PALETTE.forEach(color => {
+        const sw = document.createElement('button');
+        sw.type = 'button';
+        sw.className = 'lib-color-swatch' + (tagColors[tagName] === color ? ' active' : '');
+        sw.style.background = color;
+        sw.title = color;
+        sw.addEventListener('click', e => {
+            e.stopPropagation();
+            tagColors[tagName] = color;
+            saveTagColors();
+            renderChips();
+            palette.remove(); activePalette = null;
+        });
+        palette.appendChild(sw);
+    });
+
+    document.body.appendChild(palette);
+    activePalette = palette;
+
+    const rect = dotEl.getBoundingClientRect();
+    palette.style.top  = (rect.bottom + 6) + 'px';
+    palette.style.left = rect.left + 'px';
+
+    requestAnimationFrame(() => {
+        const pr = palette.getBoundingClientRect();
+        if (pr.right  > window.innerWidth  - 8) palette.style.left = (window.innerWidth  - pr.width  - 8) + 'px';
+        if (pr.bottom > window.innerHeight - 8) palette.style.top  = (rect.top - pr.height - 6) + 'px';
+    });
+
+    const outside = e => {
+        if (!palette.contains(e.target) && e.target !== dotEl) {
+            palette.remove(); activePalette = null;
+            document.removeEventListener('click', outside);
+        }
+    };
+    setTimeout(() => document.addEventListener('click', outside), 0);
+}
+
+function setupTagEditor() {
+    const input  = $('libTagInput');
+    const editor = $('libTagEditor');
+    if (!input) return;
+
+    input.addEventListener('keydown', e => {
+        if ((e.key === 'Enter' || e.key === ',') && input.value.trim()) {
+            e.preventDefault();
+            const tag = input.value.trim().replace(/,+$/, '');
+            if (tag && !editingTags.includes(tag)) {
+                editingTags.push(tag);
+                renderChips();
+            }
+            input.value = '';
+        }
+        if (e.key === 'Backspace' && !input.value && editingTags.length) {
+            editingTags.pop();
+            renderChips();
+        }
+    });
+
+    editor?.addEventListener('click', e => {
+        if (!e.target.closest('.lib-tag-chip')) input.focus();
+    });
 }

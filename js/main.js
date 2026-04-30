@@ -10,6 +10,7 @@ let targetKey         = null;
 let detectedKey       = null;
 let lastTransposedData = null;
 let notationMode      = 'classic';
+let tagEditor         = null;
 
 document.addEventListener('DOMContentLoaded', async () => {
     ui.initTheme();
@@ -185,11 +186,12 @@ function showSavePanel(tonoOriginal) {
     const overlay = document.getElementById('savePanelOverlay');
     if (!overlay) return;
 
-    // Reset fields and state
-    ['saveNombre', 'saveCantautor', 'saveBpm', 'saveEtiquetas', 'saveNotas'].forEach(id => {
+    ['saveNombre', 'saveCantautor', 'saveBpm', 'saveNotas'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.value = '';
     });
+    tagEditor?.reset();
+
     const msg = document.getElementById('saveMsg');
     const btn = document.getElementById('btnGuardar');
     if (msg) msg.textContent = '';
@@ -204,6 +206,16 @@ function showSavePanel(tonoOriginal) {
 function initSavePanelDrawer() {
     const overlay = document.getElementById('savePanelOverlay');
     if (!overlay) return;
+
+    tagEditor = ui.createTagEditor(
+        document.getElementById('spTagChips'),
+        document.getElementById('spTagInput'),
+        document.getElementById('saveEtiquetas')
+    );
+
+    document.getElementById('saveBpm')?.addEventListener('input', (e) => {
+        e.target.value = e.target.value.replace(/\D/g, '').slice(0, 3);
+    });
 
     document.getElementById('savePanelClose')?.addEventListener('click', closeSavePanel);
 

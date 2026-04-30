@@ -192,10 +192,14 @@
                 <button class="save-panel-close" id="savePanelClose" aria-label="Cerrar">✕</button>
             </div>
             <div class="save-fields">
-                <input id="saveNombre"    style="--i:0" class="save-input" type="text"   placeholder="Nombre de la canción *" />
-                <input id="saveCantautor" style="--i:1" class="save-input" type="text"   placeholder="Cantautor *" />
-                <input id="saveBpm"       style="--i:2" class="save-input" type="number" placeholder="BPM" min="1" max="300" />
-                <input id="saveEtiquetas" style="--i:3" class="save-input" type="text"   placeholder="Etiquetas (separadas por coma)" />
+                <input id="saveNombre"    style="--i:0" class="save-input" type="text" placeholder="Nombre de la canción *" />
+                <input id="saveCantautor" style="--i:1" class="save-input" type="text" placeholder="Cantautor *" />
+                <input id="saveBpm" style="--i:2" class="save-input" type="text" inputmode="numeric" placeholder="BPM" maxlength="3" />
+                <div id="spTagEditor" class="save-input sp-tag-editor" style="--i:3">
+                    <div id="spTagChips" class="sp-tag-chips"></div>
+                    <input id="spTagInput" class="sp-tag-input" type="text" placeholder="Etiquetas y Enter…" autocomplete="off" />
+                </div>
+                <input id="saveEtiquetas" type="hidden" />
                 <textarea id="saveNotas"  style="--i:4; resize:vertical;" class="save-input" rows="3" placeholder="Notas adicionales"></textarea>
             </div>
             <div class="save-panel-footer">
