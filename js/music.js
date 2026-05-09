@@ -2,8 +2,8 @@
 
 export const SECTION_KEYWORDS = [
     'INTRO', 'ESTROFA', 'VERSO', 'VERSE',
-    'PRE-CORO', 'PRE-CHORUS', 'CORO', 'CHORUS',
-    'PUENTE', 'BRIDGE', 'OUTRO', 'FINAL', 'SOLO', 'CODA',
+    'PRE-CORO', 'PRE-CHORUS', 'PRE-ESTRIBILLO', 'CORO', 'CHORUS',
+    'PUENTE', 'BRIDGE', 'INTERMEDIO', 'OUTRO', 'FINAL', 'SOLO', 'CODA',
     'INSTRUMENTAL',
 ];
 
@@ -15,17 +15,26 @@ export const SECTION_ALIASES = {
     'estribillo':     'CORO',
     'segunda parte':  'ESTROFA 2',
     'instrumental':   'INSTRUMENTAL',
+    'intermedio':     'PUENTE',
+    'pre-estribillo': 'PRE-CORO',
+    'pre estribillo': 'PRE-CORO',
 };
 
 /**
  * Normaliza una etiqueta de sección cruda al nombre canónico:
  *   - Elimina signos de puntuación y corchetes del principio/fin.
  *   - Aplica el mapa de alias si coincide (case-insensitive).
+ *   - VERSO [N] → ESTROFA [N]
  *   - Si no hay alias, convierte a mayúsculas.
  */
 export function normalizeSection(raw) {
     const clean = raw.replace(/^[\s([{*#\-]+|[\s)\]}*#.:;\-]+$/g, '').trim();
-    return SECTION_ALIASES[clean.toLowerCase()] ?? clean.toUpperCase();
+    const aliased = SECTION_ALIASES[clean.toLowerCase()];
+    if (aliased) return aliased;
+    const upper = clean.toUpperCase();
+    const versoMatch = upper.match(/^VERSO(\s+\d+)?$/);
+    if (versoMatch) return 'ESTROFA' + (versoMatch[1] ?? '');
+    return upper;
 }
 
 // ─── EXTRACCIÓN DE ACORDES ───────────────────────────────────────────────────
@@ -136,14 +145,6 @@ function _getChordsOnly(text) {
 
 // ─── TRANSPOSICIÓN ───────────────────────────────────────────────────────────
 
-function _formatQuality(quality) {
-    const q = quality.toLowerCase();
-    if (q === 'major' || q === 'maj' || q === '') return '';
-    if (q === 'minor' || q === 'min' || q === 'm') return 'm';
-    if (q === 'augmented' || q === 'aug') return 'aug';
-    if (q === 'diminished' || q === 'dim') return 'dim';
-    return quality;
-}
 
 export function smartTransposeChord(chord, interval, preferFlats) {
     const { prefix, pure, suffix } = _extractRepeatMarkers(chord);
@@ -157,10 +158,12 @@ export function smartTransposeChord(chord, interval, preferFlats) {
         const mainChord = slashIdx >= 0 ? pure.slice(0, slashIdx) : pure;
         const bassNote  = slashIdx >= 0 ? pure.slice(slashIdx + 1) : null;
 
-        const chordInfo = Tonal.Chord.get(mainChord);
-        const root      = chordInfo.tonic;
-        const quality   = chordInfo.type || '';
+        const chordInfo     = Tonal.Chord.get(mainChord);
+        const root          = chordInfo.tonic;
         if (!root) return chord;
+        // Preservar el sufijo exactamente como viene del original (ej. "9", "m7", "maj7")
+        // en lugar de usar chordInfo.type que Tonal expande a "dominant ninth", etc.
+        const qualitySuffix = mainChord.slice(root.length);
 
         // Helper: transpone una sola nota con el mismo intervalo y preferencia de alteración
         const transposeNote = (note) => {
@@ -174,7 +177,7 @@ export function smartTransposeChord(chord, interval, preferFlats) {
         };
 
         const newRoot  = transposeNote(root);
-        const newChord = newRoot + _formatQuality(quality);
+        const newChord = newRoot + qualitySuffix;
 
         // Si había bajo, transponerlo con el mismo intervalo y reconstruir "Root/Bass"
         const transposed = !bassNote ? newChord : newChord + '/' + transposeNote(bassNote);

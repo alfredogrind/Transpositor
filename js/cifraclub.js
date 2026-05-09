@@ -3,13 +3,22 @@
 
 import { SECTION_ALIASES, normalizeSection } from './music.js';
 
-const SECTION_RE = /^(intro|estrofa|verso|verse|pre[\s-]?coro|pre[\s-]?chorus|coro|chorus|refrain|puente|bridge|final|outro|solo|instrumental|coda|interludio|interlude|refrão|estrofe)(\s+\d{1,3})?$/i;
+const SECTION_RE = /^(intro|estrofa|verso|verse|pre[\s-]?coro|pre[\s-]?chorus|pre[\s-]?estribillo|coro|chorus|refrain|puente|bridge|intermedio|final|outro|solo|instrumental|coda|interludio|interlude|refrão|estrofe)(\s+\d{1,3})?$/i;
 
 function _isSection(text) {
     if (!text || text.length > 60) return false;
     // Strip surrounding punctuation, brackets, dashes
     const clean = text.replace(/^[\s([{*#\-]+|[\s)\]}*#.:;\-]+$/g, '').trim();
     return Object.hasOwn(SECTION_ALIASES, clean.toLowerCase()) || SECTION_RE.test(clean);
+}
+
+// Detecta si una línea de acordes empieza con un nombre de sección inline
+// (ej. "INTERMEDIO: // G/B - C9") y retorna el nombre crudo o null.
+function _sectionAtLineStart(text) {
+    const m = text.match(/^([A-Za-záéíóúñÁÉÍÓÚÑ][A-Za-záéíóúñÁÉÍÓÚÑ\s\-]*?\d*)\s*:/i);
+    if (!m) return null;
+    const candidate = m[1].trim();
+    return _isSection(candidate) ? candidate : null;
 }
 
 /**
@@ -38,6 +47,13 @@ export function parseCifraClub(htmlString) {
         const bolds = temp.querySelectorAll('b');
 
         if (bolds.length > 0) {
+            // Detectar sección inline al inicio de la línea (ej. "INTERMEDIO: // G/B - C9")
+            const inlineSection = _sectionAtLineStart(plainText);
+            if (inlineSection) {
+                current = { section: normalizeSection(inlineSection), chords: [] };
+                songData.push(current);
+            }
+
             // Línea de acordes: extraer texto de cada <b>
             const chords = Array.from(bolds)
                 .map(b => b.textContent.trim())
