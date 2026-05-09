@@ -1,9 +1,10 @@
-import * as ocr from './ocr.js';
 import * as music from './music.js';
 import * as ui from './ui.js';
 import * as template from './template.js';
 import API from './api.js';
 import { toggleLibrary } from './library.js';
+import { parseLaCuerda } from './lacuerda.js';
+import { parseCifraClub } from './cifraclub.js';
 
 let songData          = [];
 let targetKey         = null;
@@ -11,6 +12,7 @@ let detectedKey       = null;
 let lastTransposedData = null;
 let notationMode      = 'classic';
 let tagEditor         = null;
+let pendingMeta       = null;  // metadata pre-cargada desde LaCuerda
 
 document.addEventListener('DOMContentLoaded', async () => {
     ui.initTheme();
@@ -19,6 +21,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     initSavePanelDrawer();
     initNotationToggle();
     initSetlistPopup();
+    initUrlImport();
     ui.initSFM(toggleLibrary, scrollToOrShowSavePanel, openSetlistPopup);
     ui.updateSFMSaveState(false);
     await loadPendingSong();
@@ -30,89 +33,126 @@ const statusText = document.getElementById('statusText');
 const loaderWrap = document.getElementById('loaderWrap');
 const btnTranspose = document.getElementById('btnTranspose');
 
-// --- Selección de archivos (Mantenida Original con PDF/Miniaturas) ---
-fileInput.onchange = async () => {
-    const files      = Array.from(fileInput.files);
-    const mediaFiles = files.filter(f => !template.detectFormat(f.name));
-    const tplFiles   = files.filter(f =>  template.detectFormat(f.name));
-    const container  = document.getElementById('thumbnailContainer');
+// --- Selección de plantillas ---
+fileInput.onchange = () => {
+    const files     = Array.from(fileInput.files);
+    const container = document.getElementById('thumbnailContainer');
 
     if (container) {
         container.innerHTML = '';
-        for (const file of mediaFiles) {
-            let src;
-            if (file.type === 'application/pdf') {
-                const ab  = await file.arrayBuffer();
-                const pdf = await pdfjsLib.getDocument(ab).promise;
-                const page = await pdf.getPage(1);
-                const vp  = page.getViewport({ scale: 0.5 });
-                const canvas = document.createElement('canvas');
-                canvas.width = vp.width; canvas.height = vp.height;
-                await page.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise;
-                src = canvas.toDataURL('image/jpeg', 0.7);
-            } else {
-                src = URL.createObjectURL(file);
-            }
-            const div = document.createElement('div');
-            div.className = 'thumb-item';
-            div.innerHTML = `<img src="${src}">`;
-            container.appendChild(div);
-        }
-        for (const file of tplFiles) {
+        for (const file of files) {
+            const fmt = template.detectFormat(file.name);
+            if (!fmt) continue;
             const div = document.createElement('div');
             div.className = 'thumb-item thumb-item--template';
-            div.innerHTML = `<span class="thumb-tpl-label">${template.detectFormat(file.name).toUpperCase()}</span>`;
+            div.innerHTML = `<span class="thumb-tpl-label">${fmt.toUpperCase()}</span>`;
             container.appendChild(div);
         }
     }
     btnProcess.disabled = files.length === 0;
 };
 
-// --- Procesamiento de Escaneo (Integrado con Animación) ---
+// --- Procesamiento de plantilla ---
 btnProcess.onclick = async () => {
     try {
-        ui.showScanner(loaderWrap, statusText, "Escaneando canción...");
+        ui.showScanner(loaderWrap, statusText, "Cargando plantilla...");
         songData = [];
         lastTransposedData = null;
         ui.updateSFMSaveState(false);
         document.getElementById('detectionResults').innerHTML = "";
         document.getElementById('finalOutput').style.display = 'none';
 
-        const files = Array.from(fileInput.files);
-        for (const file of files) {
+        for (const file of Array.from(fileInput.files)) {
             const fmt = template.detectFormat(file.name);
-            if (fmt) {
-                const text = await file.text();
-                songData.push(...template.parseTemplate(text, fmt, music.extractChordsWithRepetition));
-            } else {
-                const sources = (file.type === "application/pdf") ? await ocr.pdfToImages(file) : [await toBase64(file)];
-                for (const src of sources) {
-                    const text = await ocr.runOCR(src);
-                    processTextToSongData(text);
-                }
-            }
+            if (!fmt) continue;
+            const text = await file.text();
+            songData.push(...template.parseTemplate(text, fmt, music.extractChordsWithRepetition));
         }
         refreshUI();
     } catch (error) { console.error("Error:", error); }
     finally { loaderWrap.style.display = 'none'; }
 };
 
-function processTextToSongData(text) {
-    text.split('\n').forEach(line => {
-        let clean = line.trim();
-        if (!clean) return;
-        const upperLine = clean.toUpperCase();
-        const found = music.SECTION_KEYWORDS.find(k => upperLine.includes(k));
-        if (found) songData.push({ section: upperLine, chords: [] });
-        else {
-            const chords = music.extractChordsWithRepetition(clean);
-            if (chords.length > 0) {
-                if (songData.length === 0) songData.push({ section: "INICIO", chords: [] });
-                songData[songData.length - 1].chords.push(...chords);
-            }
-        }
+// ── Importar desde LaCuerda.net ────────────────────────────────────────────
+
+function initUrlImport() {
+    const btnToggle = document.getElementById('btnToggleUrlImport');
+    const panel     = document.getElementById('urlImportPanel');
+    const input     = document.getElementById('urlImportInput');
+    const btnGo     = document.getElementById('btnImportUrl');
+    if (!btnToggle || !panel) return;
+
+    btnToggle.addEventListener('click', () => {
+        const isHidden = panel.hidden;
+        panel.hidden = !isHidden;
+        if (isHidden) input?.focus();
     });
+
+    btnGo?.addEventListener('click', _doImportUrl);
+    input?.addEventListener('keydown', e => { if (e.key === 'Enter') _doImportUrl(); });
 }
+
+async function _doImportUrl() {
+    const input = document.getElementById('urlImportInput');
+    const rawUrl = input?.value.trim();
+    if (!rawUrl) return;
+
+    // Normalizar: añadir protocolo si falta
+    const url = /^https?:\/\//i.test(rawUrl) ? rawUrl : `https://${rawUrl}`;
+
+    // Detectar fuente y validar URL
+    let source;
+    try {
+        const u = new URL(url);
+        if (u.hostname === 'acordes.lacuerda.net') {
+            if (!u.pathname.endsWith('.shtml')) {
+                showAlert('URL inválida. El formato de LaCuerda debe ser:\nacordes.lacuerda.net/artista/cancion-N.shtml');
+                return;
+            }
+            source = 'lacuerda';
+        } else if (u.hostname.includes('cifraclub.com')) {
+            source = 'cifraclub';
+        } else {
+            showAlert('URL no reconocida. Introduce una URL de:\n• cifraclub.com/artista/cancion\n• acordes.lacuerda.net/artista/cancion.shtml');
+            return;
+        }
+    } catch {
+        showAlert('URL inválida.');
+        return;
+    }
+
+    const sourceLabel = source === 'lacuerda' ? 'LaCuerda' : 'CifraClub';
+    ui.showScanner(loaderWrap, statusText, `Obteniendo acordes desde ${sourceLabel}…`);
+    songData = [];
+    lastTransposedData = null;
+    pendingMeta = null;
+    ui.updateSFMSaveState(false);
+    document.getElementById('detectionResults').innerHTML = '';
+    document.getElementById('finalOutput').style.display = 'none';
+
+    try {
+        let html, parsed, meta;
+        if (source === 'lacuerda') {
+            html = await API.lacuerda(url);
+            ({ songData: parsed, meta } = parseLaCuerda(html));
+        } else {
+            html = await API.cifraclub(url);
+            ({ songData: parsed, meta } = parseCifraClub(html));
+        }
+
+        if (!parsed.length) throw new Error('No se encontraron acordes en la página.');
+
+        songData    = parsed;
+        pendingMeta = meta;
+        document.getElementById('urlImportPanel').hidden = true;
+        refreshUI();
+    } catch (err) {
+        showAlert(`Error al importar: ${err.message}`);
+    } finally {
+        loaderWrap.style.display = 'none';
+    }
+}
+
 
 function getLabelFn(referenceRoot) {
     if (notationMode === 'degrees' && referenceRoot) {
@@ -125,6 +165,8 @@ function refreshUI() {
     songData    = songData.filter(s => s.chords.length > 0);
     const chords = songData.flatMap(s => s.chords);
     detectedKey  = music.detectSongKey(chords);
+    targetKey    = null;
+
     ui.renderResults(
         document.getElementById('detectionResults'),
         songData,
@@ -133,9 +175,33 @@ function refreshUI() {
         getLabelFn(detectedKey?.root)
     );
 
-    ui.renderToneGrid(document.getElementById('gridTones'), detectedKey?.quality, (note) => { targetKey = note; });
+    _renderKeySection();
     document.getElementById('toneSelector').style.display = 'block';
     ui.updateSFMSaveState(true);
+}
+
+function _renderKeySection() {
+    const keyModeRow = document.getElementById('keyModeRow');
+    const gridTones  = document.getElementById('gridTones');
+
+    ui.renderKeyToggle(keyModeRow, detectedKey, (newQuality) => {
+        if (!detectedKey || newQuality === detectedKey.quality) return;
+
+        // Intercambiar con la tonalidad relativa
+        detectedKey = {
+            root:       detectedKey.relative.root,
+            quality:    detectedKey.relative.quality,
+            confidence: detectedKey.confidence,
+            relative:   { root: detectedKey.root, quality: detectedKey.quality },
+        };
+
+        // Limpiar selección previa y re-renderizar el grid en el nuevo modo
+        targetKey = null;
+        document.querySelectorAll('.btn-tone').forEach(b => b.classList.remove('selected'));
+        ui.renderToneGrid(gridTones, detectedKey.quality, (note) => { targetKey = note; });
+    });
+
+    ui.renderToneGrid(gridTones, detectedKey?.quality, (note) => { targetKey = note; });
 }
 
 btnTranspose.onclick = () => {
@@ -145,8 +211,11 @@ btnTranspose.onclick = () => {
     // targetKey puede ser "Dm", "F#m"… — extraer solo la raíz para cálculos de intervalo
     const targetRoot = targetKey.replace(/m$/, '');
 
-    const first  = songData[0].chords[0];
-    const source = Tonal.Chord.get(first).tonic || first.match(/^[A-G][#b]?/)[0];
+    // Buscar el primer acorde real (puede tener marcadores embebidos como '||C')
+    const firstRaw  = songData.flatMap(s => s.chords).find(c => /[A-G]/.test(c)) ?? '';
+    const firstPure = firstRaw.replace(/^(\|{2,}|\/{2,})/, '').replace(/(\|{2,}|\/{2,})$/, '');
+    const source    = Tonal.Chord.get(firstPure).tonic || firstPure.match(/^[A-G][#b]?/)?.[0];
+    if (!source) return showAlert('No se pudo determinar el tono de origen.');
     const interval = Tonal.distance(source, targetRoot);
 
     // Claves que usan bemoles (mayor + relativas menores)
@@ -192,12 +261,19 @@ function showSavePanel(tonoOriginal) {
     });
     tagEditor?.reset();
 
+    // Pre-llenar desde metadata de LaCuerda si está disponible
+    if (pendingMeta) {
+        if (pendingMeta.nombre)    document.getElementById('saveNombre').value    = pendingMeta.nombre;
+        if (pendingMeta.cantautor) document.getElementById('saveCantautor').value = pendingMeta.cantautor;
+        if (pendingMeta.bpm)       document.getElementById('saveBpm').value       = pendingMeta.bpm;
+    }
+
     const msg = document.getElementById('saveMsg');
     const btn = document.getElementById('btnGuardar');
     if (msg) msg.textContent = '';
     if (btn) { btn.disabled = false; btn.textContent = 'Guardar canción'; }
 
-    overlay.dataset.tonoOriginal = tonoOriginal;
+    overlay.dataset.tonoOriginal = pendingMeta?.tono || tonoOriginal;
     overlay.setAttribute('aria-hidden', 'false');
     overlay.classList.add('open');
     document.getElementById('saveNombre')?.focus();
@@ -261,9 +337,6 @@ function initSavePanelDrawer() {
     });
 }
 
-const toBase64 = file => new Promise(res => {
-    const r = new FileReader(); r.onload = e => res(e.target.result); r.readAsDataURL(file);
-});
 
 function showAlert(msg) {
     const modal = document.getElementById('alertModal');

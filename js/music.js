@@ -4,25 +4,103 @@ export const SECTION_KEYWORDS = [
     'INTRO', 'ESTROFA', 'VERSO', 'VERSE',
     'PRE-CORO', 'PRE-CHORUS', 'CORO', 'CHORUS',
     'PUENTE', 'BRIDGE', 'OUTRO', 'FINAL', 'SOLO', 'CODA',
+    'INSTRUMENTAL',
 ];
+
+// Alias → nombre canónico (en mayúsculas).
+// Permite que los parsers y el parser de plantillas entiendan términos
+// alternativos y los unifiquen con el vocabulario estándar del proyecto.
+export const SECTION_ALIASES = {
+    'primera parte':  'ESTROFA',
+    'estribillo':     'CORO',
+    'segunda parte':  'ESTROFA 2',
+    'instrumental':   'INSTRUMENTAL',
+};
+
+/**
+ * Normaliza una etiqueta de sección cruda al nombre canónico:
+ *   - Elimina signos de puntuación y corchetes del principio/fin.
+ *   - Aplica el mapa de alias si coincide (case-insensitive).
+ *   - Si no hay alias, convierte a mayúsculas.
+ */
+export function normalizeSection(raw) {
+    const clean = raw.replace(/^[\s([{*#\-]+|[\s)\]}*#.:;\-]+$/g, '').trim();
+    return SECTION_ALIASES[clean.toLowerCase()] ?? clean.toUpperCase();
+}
 
 // ─── EXTRACCIÓN DE ACORDES ───────────────────────────────────────────────────
 
+// Mantenido para compatibilidad con datos antiguos en BD (tokens separados '||', '||', '//')
+export const REPEAT_TOKENS = new Set(['||', '|||', '//']);
+
+// Separa el prefijo y sufijo de repetición embebidos en un string de acorde.
+// Ej: '||C' → { prefix:'||', pure:'C', suffix:'' }
+//     'F||' → { prefix:'', pure:'F', suffix:'||' }
+//     'C'   → { prefix:'', pure:'C', suffix:'' }
+function _extractRepeatMarkers(chord) {
+    const prefixMatch = chord.match(/^(\|{2,}|\/{2,})/);
+    const prefix = prefixMatch ? prefixMatch[1] : '';
+    const rest   = chord.slice(prefix.length);
+    const suffixMatch = rest.match(/(\|{2,}|\/{2,})$/);
+    const suffix = suffixMatch ? suffixMatch[1] : '';
+    const pure   = rest.slice(0, rest.length - suffix.length);
+    return { prefix, pure, suffix };
+}
+
+// Normaliza el texto OCR antes de parsear: convierte patrones de barra simple o mal
+// leídos (| simple) en || doble cuando encierran una secuencia de acordes.
+// Bug corregido: usar [^|\n]* (asterisco) en lugar de [^|\n]+ (plus) para que el
+// patrón funcione cuando el contenido empieza directamente con una nota (Bm, Am, G…)
+// o cuando hay un único acorde entre las barras.
+function _normalizeOCRRepeatMarkers(text) {
+    return text.split('\n').map(line => {
+        if (!/[A-G]/.test(line)) return line;
+        return line
+            // Barras (|, ||, |||, o más) encerrando acordes → normalizar a || o |||
+            .replace(/(\|+)([^|\n]*[A-G][^|\n]*)(\|+)/g, (_, open, content) => {
+                const mark = open.length >= 3 ? '|||' : '||';
+                return mark + content + mark;
+            })
+            // Slashes (/, //, ///) encerrando acordes → normalizar a // o ///
+            .replace(/(\/+)([^/\n]*[A-G][^/\n]*)(\/+)/g, (_, open, content) => {
+                const mark = open.length >= 3 ? '///' : '//';
+                return mark + content + mark;
+            });
+    }).join('\n');
+}
+
 export function extractChordsWithRepetition(text) {
     let results = [];
+    // Normalizar primero para reparar || que OCR haya leído como | simple
+    const normalized = _normalizeOCRRepeatMarkers(text);
     const triplePattern = /\|{3,}(.*?)\|{3,}/g;
     const doublePattern = /\|{2}(.*?)\|{2}/g;
-    let tempText = text;
+    const slashPattern  = /\/{2}(.*?)\/{2}/g;
+    let tempText = normalized;
 
+    // Embebe el marcador como prefijo del primer acorde y sufijo del último.
+    // Así '||C-G-A-F||' → ['||C', 'G', 'A', 'F||'] en lugar de tokens separados.
+    function embedMarkers(chords, mark) {
+        if (!chords.length) return;
+        const marked = [...chords];
+        marked[0] = mark + marked[0];
+        marked[marked.length - 1] = marked[marked.length - 1] + mark;
+        results.push(...marked);
+    }
+
+    // Triple pipe primero para que ||| no sea capturado como dos bloques ||
     tempText = tempText.replace(triplePattern, (_, content) => {
-        const chords = _getChordsOnly(content);
-        results.push(...chords, ...chords, ...chords);
+        embedMarkers(_getChordsOnly(content), '|||');
         return '';
     });
 
     tempText = tempText.replace(doublePattern, (_, content) => {
-        const chords = _getChordsOnly(content);
-        results.push(...chords, ...chords);
+        embedMarkers(_getChordsOnly(content), '||');
+        return '';
+    });
+
+    tempText = tempText.replace(slashPattern, (_, content) => {
+        embedMarkers(_getChordsOnly(content), '//');
         return '';
     });
 
@@ -68,13 +146,16 @@ function _formatQuality(quality) {
 }
 
 export function smartTransposeChord(chord, interval, preferFlats) {
+    const { prefix, pure, suffix } = _extractRepeatMarkers(chord);
+    // Token de marcador puro (ej. '||' solo) o string vacío: pasar intacto
+    if (!pure) return chord;
     try {
         // Separar el acorde principal de la nota del bajo ANTES de llamar a Tonal.
         // Tonal.Chord.get no soporta slash chords y devuelve tonic:null para "D/F#",
         // lo que haría que el acorde completo se devuelva sin transponer.
-        const slashIdx  = chord.indexOf('/');
-        const mainChord = slashIdx >= 0 ? chord.slice(0, slashIdx) : chord;
-        const bassNote  = slashIdx >= 0 ? chord.slice(slashIdx + 1) : null;
+        const slashIdx  = pure.indexOf('/');
+        const mainChord = slashIdx >= 0 ? pure.slice(0, slashIdx) : pure;
+        const bassNote  = slashIdx >= 0 ? pure.slice(slashIdx + 1) : null;
 
         const chordInfo = Tonal.Chord.get(mainChord);
         const root      = chordInfo.tonic;
@@ -92,12 +173,12 @@ export function smartTransposeChord(chord, interval, preferFlats) {
             return Tonal.Note.simplify(t);
         };
 
-        const newRoot   = transposeNote(root);
-        const newChord  = newRoot + _formatQuality(quality);
+        const newRoot  = transposeNote(root);
+        const newChord = newRoot + _formatQuality(quality);
 
         // Si había bajo, transponerlo con el mismo intervalo y reconstruir "Root/Bass"
-        if (!bassNote) return newChord;
-        return newChord + '/' + transposeNote(bassNote);
+        const transposed = !bassNote ? newChord : newChord + '/' + transposeNote(bassNote);
+        return prefix + transposed + suffix;
     } catch { return chord; }
 }
 
@@ -113,14 +194,16 @@ const CHROMATIC_MAP = {
 const DEGREE_NAMES = ['1','1#','2','2#','3','4','4#','5','5#','6','6#','7'];
 
 export function convertChordToDegree(chord, rootNote) {
+    const { prefix, pure, suffix } = _extractRepeatMarkers(chord);
+    if (!pure) return chord;  // token de marcador puro: pasar intacto
     try {
         // Separar el acorde principal del bajo en notación slash (ej. "D/F#" → "D" + "F#").
         // Tonal.Chord.get no reconoce slash chords, por lo que hay que aislar cada parte
         // antes de invocarla; de lo contrario devuelve tonic=null y el fallback devuelve
         // el nombre literal en lugar del grado.
-        const slashIdx  = chord.indexOf('/');
-        const mainChord = slashIdx >= 0 ? chord.slice(0, slashIdx) : chord;
-        const bassNote  = slashIdx >= 0 ? chord.slice(slashIdx + 1) : null;
+        const slashIdx  = pure.indexOf('/');
+        const mainChord = slashIdx >= 0 ? pure.slice(0, slashIdx) : pure;
+        const bassNote  = slashIdx >= 0 ? pure.slice(slashIdx + 1) : null;
 
         const chordInfo = Tonal.Chord.get(mainChord);
         const chordRoot = chordInfo.tonic;
@@ -136,13 +219,20 @@ export function convertChordToDegree(chord, rootNote) {
         const qualitySuffix = mainChord.slice(chordRoot.length);
         const degree        = DEGREE_NAMES[semitones] + qualitySuffix;
 
-        if (!bassNote) return degree;
+        let result;
+        if (!bassNote) {
+            result = degree;
+        } else {
+            // Grado del bajo relativo a la misma tonalidad
+            const bassPc = CHROMATIC_MAP[bassNote];
+            if (bassPc === undefined) result = degree + '/' + bassNote; // bajo desconocido: literal
+            else {
+                const bassDegree = ((bassPc - rootPc) % 12 + 12) % 12;
+                result = degree + '/' + DEGREE_NAMES[bassDegree];
+            }
+        }
 
-        // Grado del bajo relativo a la misma tonalidad
-        const bassPc = CHROMATIC_MAP[bassNote];
-        if (bassPc === undefined) return degree + '/' + bassNote; // bajo desconocido: literal
-        const bassDegree = ((bassPc - rootPc) % 12 + 12) % 12;
-        return degree + '/' + DEGREE_NAMES[bassDegree];
+        return prefix + result + suffix;
     } catch { return chord; }
 }
 
@@ -155,14 +245,15 @@ export function convertToDegrees(chords, keyInfo) {
 //
 // Algoritmo:
 //   1. Descompone cada acorde en sus pitch classes (0-11).
-//   2. Construye un histograma de frecuencias sobre todos los acordes.
-//   3. Calcula el producto escalar del histograma contra los 24 perfiles KS
-//      (12 tonalidades mayores + 12 menores).
-//   4. La tonalidad con mayor puntuación es la ganadora.
+//   2. Construye un histograma de frecuencias (normalizado a media cero).
+//   3. Calcula el producto escalar normalizado contra los 24 perfiles KS
+//      (12 tonalidades mayores + 12 menores), también normalizados a media cero.
+//   4. Aplica heurísticas de apoyo (primer/último acorde, proporción mayor/menor).
+//   5. La tonalidad con mayor puntuación es la ganadora.
 //
-// Los perfiles KS son coeficientes derivados de experimentos perceptuales
-// que ponderan cada grado de la escala por su "estabilidad tonal" percibida.
-// Esto diferencia, por ejemplo, Do Mayor de La menor aunque compartan notas.
+// La normalización a media cero (paso 2-3) elimina el sesgo sistemático hacia
+// el modo menor que produce la versión sin normalizar, porque los perfiles KS
+// menores tienen una suma total mayor que los mayores.
 
 const _CHORD_IVS = {
     major: [0,4,7],         minor: [0,3,7],
@@ -180,6 +271,10 @@ const _CHORD_IVS = {
 // Índice 0 = tónica; los demás = grados cromáticos relativos a ella
 const _KS_MAJOR = [6.35, 2.23, 3.48, 2.33, 4.38, 4.09, 2.52, 5.19, 2.39, 3.66, 2.29, 2.88];
 const _KS_MINOR = [6.33, 2.68, 3.52, 5.38, 2.60, 3.53, 2.54, 4.75, 3.98, 2.69, 3.34, 3.17];
+
+// Perfiles normalizados a media cero — eliminan el sesgo hacia el modo menor
+const _KS_MAJOR_NORM = (() => { const m = _KS_MAJOR.reduce((a,b)=>a+b,0)/12; return _KS_MAJOR.map(v=>v-m); })();
+const _KS_MINOR_NORM = (() => { const m = _KS_MINOR.reduce((a,b)=>a+b,0)/12; return _KS_MINOR.map(v=>v-m); })();
 
 // Etiqueta preferida por pitch class — todas presentes en CHROMATIC_MAP
 const _KEY_LABEL = ['C','Db','D','Eb','E','F','F#','G','Ab','A','Bb','B'];
@@ -213,13 +308,95 @@ function _parseQuality(suffix) {
 }
 
 function _chordPitchClasses(chord) {
-    const main = chord.split('/')[0].trim();   // ignora el bajo en acordes slash
+    const { pure } = _extractRepeatMarkers(chord);
+    if (!pure) return [];  // marcador puro: no contribuye al histograma
+    const main = pure.split('/')[0].trim();   // ignora el bajo en acordes slash
     const m    = main.match(/^([A-G][#b]?)(.*)/);
     if (!m) return [];
     const rootPc = CHROMATIC_MAP[m[1]];
     if (rootPc === undefined) return [];
     const ivs = _CHORD_IVS[_parseQuality(m[2])] ?? [0, 4, 7];
     return [...new Set(ivs.map(i => (rootPc + i) % 12))];
+}
+
+// Calcula la tonalidad relativa (Mayor↔menor) dada una raíz y modo interno.
+// mode: 'major' | 'minor'   →   retorna { root, quality } con strings de display.
+function _relativeKey(rootLabel, mode) {
+    const rootPc = CHROMATIC_MAP[rootLabel];
+    if (rootPc === undefined) return null;
+    if (mode === 'major') {
+        return { root: _KEY_LABEL[(rootPc + 9) % 12], quality: 'menor' };
+    } else {
+        return { root: _KEY_LABEL[(rootPc + 3) % 12], quality: 'Mayor' };
+    }
+}
+
+// Recoge señales heurísticas de los acordes de la canción para apoyar la
+// decisión cuando el perfil KS es ambiguo (ej. Do Mayor vs La menor).
+function _gatherHeuristics(allChords) {
+    const real = allChords.filter(c => {
+        const { pure } = _extractRepeatMarkers(c);
+        return pure && /^[A-G]/.test(pure);
+    });
+
+    let majorCount = 0, minorCount = 0;
+    const rootFreq = new Array(12).fill(0);
+
+    for (const c of real) {
+        const { pure } = _extractRepeatMarkers(c);
+        const m = pure.match(/^([A-G][#b]?)(.*)/);
+        if (!m) continue;
+        const pc = CHROMATIC_MAP[m[1]];
+        if (pc !== undefined) rootFreq[pc]++;
+        if (/^[A-G][#b]?m(?!aj)/i.test(pure)) minorCount++;
+        else majorCount++;
+    }
+
+    return {
+        first:      real[0]                   ?? null,
+        last:       real[real.length - 1]     ?? null,
+        majorRatio: (majorCount + minorCount) > 0
+            ? majorCount / (majorCount + minorCount)
+            : 0.5,
+        rootFreq,
+    };
+}
+
+// Devuelve una puntuación adicional para (rootPc, mode) basada en las heurísticas.
+// Los valores están calibrados para influir solo en casos ambiguos (KS gap pequeño).
+function _heuristicBoost(rootPc, mode, h) {
+    let boost = 0;
+
+    // La raíz más frecuente es probablemente la tónica
+    const maxFreq = Math.max(...h.rootFreq);
+    if (maxFreq > 0 && h.rootFreq[rootPc] === maxFreq) boost += 0.8;
+
+    // Primer acorde: señal fuerte sobre la tónica
+    if (h.first) {
+        const { pure } = _extractRepeatMarkers(h.first);
+        const m = pure.match(/^([A-G][#b]?)(.*)/);
+        if (m) {
+            const firstPc      = CHROMATIC_MAP[m[1]];
+            const firstIsMinor = /^[A-G][#b]?m(?!aj)/i.test(pure);
+            if (firstPc === rootPc) {
+                boost += 1.2;
+                if (firstIsMinor === (mode === 'minor')) boost += 0.5;
+            }
+        }
+    }
+
+    // Último acorde: también suele ser la tónica
+    if (h.last && h.last !== h.first) {
+        const { pure } = _extractRepeatMarkers(h.last);
+        const m = pure.match(/^([A-G][#b]?)(.*)/);
+        if (m && CHROMATIC_MAP[m[1]] === rootPc) boost += 0.8;
+    }
+
+    // Proporción de acordes mayores vs menores
+    if (mode === 'major' && h.majorRatio > 0.60) boost += 0.6;
+    if (mode === 'minor' && h.majorRatio < 0.40) boost += 0.6;
+
+    return boost;
 }
 
 export function detectSongKey(allChords) {
@@ -232,44 +409,57 @@ export function detectSongKey(allChords) {
         for (const pc of _chordPitchClasses(chord)) { freq[pc]++; total++; }
     }
 
-    // Fallback: sin acordes reconocibles → usar el primer acorde como referencia
+    // Fallback: sin acordes reconocibles → usar el primer acorde real como referencia
     if (total === 0) {
-        const root    = allChords[0].match(/^[A-G][#b]?/)?.[0] ?? allChords[0];
-        const isMinor = /^[A-G][#b]?m(?!aj)/i.test(allChords[0]);
-        return { root, quality: isMinor ? 'menor' : 'Mayor', confidence: 0 };
+        const firstRaw = allChords.find(c => /[A-G]/.test(c)) ?? allChords[0];
+        const { pure } = _extractRepeatMarkers(firstRaw);
+        const root     = pure.match(/^[A-G][#b]?/)?.[0] ?? pure;
+        const mode     = /^[A-G][#b]?m(?!aj)/i.test(pure) ? 'minor' : 'major';
+        return {
+            root,
+            quality:    mode === 'major' ? 'Mayor' : 'menor',
+            confidence: 0,
+            relative:   _relativeKey(root, mode),
+        };
     }
 
-    // 2 ── Producto escalar freq · perfil KS para las 24 tonalidades
-    let bestScore  = -Infinity;
-    let secondBest = -Infinity;
-    let bestRoot   = 0;
-    let bestMode   = 'major';
+    // 2 ── Normalizar histograma a media cero (elimina sesgo de magnitud absoluta)
+    const freqMean = freq.reduce((a, b) => a + b, 0) / 12;
+    const freqNorm = Float32Array.from(freq, v => v - freqMean);
 
+    // 3 ── Producto escalar con perfiles KS normalizados para las 24 tonalidades
+    const scores = [];
     for (let r = 0; r < 12; r++) {
-        for (const [mode, profile] of [['major', _KS_MAJOR], ['minor', _KS_MINOR]]) {
-            let score = 0;
-            for (let pc = 0; pc < 12; pc++) {
-                score += freq[pc] * profile[((pc - r) % 12 + 12) % 12];
-            }
-            if (score > bestScore) {
-                secondBest = bestScore;
-                bestScore  = score;
-                bestRoot   = r;
-                bestMode   = mode;
-            } else if (score > secondBest) {
-                secondBest = score;
-            }
+        let majScore = 0, minScore = 0;
+        for (let pc = 0; pc < 12; pc++) {
+            const idx = ((pc - r) % 12 + 12) % 12;
+            majScore += freqNorm[pc] * _KS_MAJOR_NORM[idx];
+            minScore += freqNorm[pc] * _KS_MINOR_NORM[idx];
         }
+        scores.push({ score: majScore, root: r, mode: 'major' });
+        scores.push({ score: minScore, root: r, mode: 'minor' });
     }
 
-    // 3 ── Confianza: separación relativa entre la tonalidad ganadora y la segunda
+    // 4 ── Heurísticas de apoyo: primer/último acorde, proporción mayor/menor
+    const h = _gatherHeuristics(allChords);
+    for (const s of scores) s.score += _heuristicBoost(s.root, s.mode, h);
+
+    // 5 ── Seleccionar ganador y calcular confianza
+    scores.sort((a, b) => b.score - a.score);
+    const winner = scores[0];
+    const spread = winner.score - scores[scores.length - 1].score;
+    const gap    = winner.score - scores[1].score;
     const confidence = parseFloat(
-        Math.min(Math.max((bestScore - secondBest) / bestScore, 0), 1).toFixed(2)
+        Math.min(spread > 0 ? gap / spread : 0, 1).toFixed(2)
     );
 
+    const root    = _KEY_LABEL[winner.root];
+    const quality = winner.mode === 'major' ? 'Mayor' : 'menor';
+
     return {
-        root:       _KEY_LABEL[bestRoot],
-        quality:    bestMode === 'major' ? 'Mayor' : 'menor',
-        confidence,                        // 0–1: qué tan inequívoca es la detección
+        root,
+        quality,
+        confidence,           // 0–1: qué tan inequívoca es la detección
+        relative: _relativeKey(root, winner.mode),
     };
 }

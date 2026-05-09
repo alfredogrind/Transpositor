@@ -1,3 +1,5 @@
+import { normalizeSection } from './music.js';
+
 const DEFAULT_SECTIONS = ['-INTRO', '-ESTROFA', '-PRE-CORO', '-CORO', '-ESTROFA 2', '-PUENTE', '-OUTRO'];
 
 // ─── Generadores ───────────────────────────────────────────────────────────────
@@ -45,7 +47,7 @@ export function parseTemplate(text, format, extractChordsFn) {
             const obj = JSON.parse(text);
             for (const [key, value] of Object.entries(obj)) {
                 if (!key.startsWith('-')) continue;
-                const name   = key.slice(1).trim().toUpperCase();
+                const name   = normalizeSection(key.slice(1).trim());
                 const chords = value ? extractChordsFn(String(value)) : [];
                 if (name) sections.push({ section: name, chords });
             }
@@ -61,7 +63,7 @@ export function parseTemplate(text, format, extractChordsFn) {
             const key   = sep >= 0 ? line.slice(0, sep).trim() : line.trim();
             const value = sep >= 0 ? line.slice(sep + 1).trim() : '';
             if (!key.startsWith('-')) continue;
-            const name   = key.slice(1).trim().toUpperCase();
+            const name   = normalizeSection(key.slice(1).trim());
             const chords = value ? extractChordsFn(value) : [];
             if (name) sections.push({ section: name, chords });
         }
@@ -72,7 +74,7 @@ export function parseTemplate(text, format, extractChordsFn) {
             const line = raw.trim();
             if (!line) continue;
             if (line.startsWith('-')) {
-                const name = line.slice(1).trim().toUpperCase();
+                const name = normalizeSection(line.slice(1).trim());
                 current = { section: name, chords: [] };
                 sections.push(current);
             } else if (current) {

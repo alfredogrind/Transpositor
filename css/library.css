@@ -1,219 +1,140 @@
-/* ── Layout override (styles.css centers body; library uses sidebar layout) ── */
+/* ── Layout: full-width, no sidebar ────────────────────── */
 body {
     display: flex;
-    flex-direction: row;
+    flex-direction: column;
     align-items: stretch;
     padding: 0;
     min-height: 100vh;
 }
 
-/* ── Shell ─────────────────────────────────────────── */
 .lib-shell {
     display: flex;
     width: 100%;
     min-height: 100vh;
 }
 
-/* ── Sidebar ───────────────────────────────────────── */
-.lib-sidebar {
-    width: 220px;
-    flex-shrink: 0;
-    background: var(--surface);
-    border-right: 1px solid var(--border);
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-    padding: 1.5rem 0.75rem;
-    position: sticky;
-    top: 0;
-    height: 100vh;
-    overflow-y: auto;
-    z-index: 100;
-    transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.lib-sidebar-brand {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.25rem 0.75rem 1rem;
-    border-bottom: 1px solid var(--border);
-    margin-bottom: 0.5rem;
-}
-
-.lib-brand-icon { font-size: 1.4rem; color: var(--accent); }
-.lib-brand-name {
-    font-size: 1rem;
-    font-weight: 700;
-    color: var(--text);
-    letter-spacing: -0.02em;
-}
-
-/* ── Sidebar Nav ───────────────────────────────────── */
-.lib-nav {
-    display: flex;
-    flex-direction: column;
-    gap: 0.15rem;
-    flex: 1;
-}
-
-.lib-nav-item {
-    display: flex;
-    align-items: center;
-    gap: 0.6rem;
-    padding: 0.6rem 0.75rem;
-    border-radius: 12px;
-    background: none;
-    border: none;
-    color: var(--text2);
-    font-size: 0.88rem;
-    font-weight: 500;
-    font-family: inherit;
-    cursor: pointer;
-    text-align: left;
-    transition: background 0.2s, color 0.2s;
-    width: 100%;
-}
-
-.lib-nav-item:hover { background: var(--surface2); color: var(--text); }
-.lib-nav-item.active { background: var(--accent); color: #fff; }
-
-.lib-nav-icon { font-size: 1rem; width: 1.2rem; text-align: center; }
-
-.lib-back-btn {
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-    padding: 0.65rem 1rem;
-    background: var(--accent);
-    color: rgba(0, 0, 0, 0.82);
-    text-decoration: none;
-    font-size: 0.82rem;
-    font-weight: 600;
-    border-radius: 12px;
-    margin-top: 0.5rem;
-    animation: lib-back-pulse 3s ease-in-out infinite;
-    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1),
-                box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1),
-                filter 0.25s;
-    will-change: transform, box-shadow;
-}
-.lib-back-btn:hover {
-    transform: scale(1.05);
-    filter: brightness(1.12);
-    box-shadow: 0 4px 18px rgba(200, 169, 110, 0.55);
-    animation-play-state: paused;
-}
-
-@keyframes lib-back-pulse {
-    0%, 100% { box-shadow: 0 2px 8px  rgba(200, 169, 110, 0.25), 0 0 0 1px rgba(200, 169, 110, 0.15); }
-    50%       { box-shadow: 0 2px 20px rgba(200, 169, 110, 0.55), 0 0 0 1px rgba(200, 169, 110, 0.35); }
-}
-
-/* ── Mobile sidebar overlay ────────────────────────── */
-.lib-sidebar-overlay {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.45);
-    z-index: 99;
-    backdrop-filter: blur(2px);
-}
-.lib-sidebar-overlay.open { display: block; }
-
-/* ── Main ──────────────────────────────────────────── */
+/* ── Main ──────────────────────────────────────────────── */
 .lib-main {
     flex: 1;
     min-width: 0;
     background: var(--bg);
-    padding: 2rem 2.5rem;
+    padding: 1.5rem 1.5rem 0;
+    padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px) + 1.5rem);
     overflow-y: auto;
+    max-width: 720px;
+    margin: 0 auto;
+    width: 100%;
 }
 
-/* ── Topbar ────────────────────────────────────────── */
+/* ── App Bar ───────────────────────────────────────────── */
 .lib-topbar {
     display: flex;
     align-items: center;
+    justify-content: space-between;
     gap: 1rem;
-    margin-bottom: 1.75rem;
+    margin-bottom: 1.5rem;
+    padding-top: 0.5rem;
 }
 
-.lib-menu-btn {
-    display: none;
-    flex-direction: column;
-    justify-content: center;
-    gap: 4px;
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    cursor: pointer;
-    padding: 0.5rem 0.6rem;
-    flex-shrink: 0;
-}
-.lib-menu-btn span { display: block; width: 18px; height: 2px; background: var(--text); border-radius: 2px; }
+.lib-menu-btn { display: none; } /* kept in DOM but hidden */
 
 .lib-page-title {
-    flex: 1;
-    font-size: 1.6rem;
+    font-size: 1.65rem;
     font-weight: 700;
     color: var(--text);
-    letter-spacing: -0.02em;
+    letter-spacing: -0.025em;
     line-height: 1;
 }
 
 .lib-topbar-right { display: flex; align-items: center; gap: 0.5rem; }
 
-.lib-theme-btn {
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 0.45rem 0.75rem;
-    cursor: pointer;
-    color: var(--text2);
-    font-size: 0.9rem;
-    transition: all 0.2s;
-    line-height: 1;
+/* User avatar circle */
+.lib-avatar {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: rgba(0, 0, 0, 0.78);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    font-weight: 700;
+    flex-shrink: 0;
+    box-shadow: 0 2px 10px rgba(200, 169, 110, 0.35);
 }
-.lib-theme-btn:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
-body.light-mode .lib-icon-moon { display: none; }
-body:not(.light-mode) .lib-icon-sun { display: none; }
 
-/* ── Stats row ─────────────────────────────────────── */
+/* ── Stats 2×2 grid ────────────────────────────────────── */
 .lib-stats-row {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 1rem;
-    margin-bottom: 1.75rem;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+    margin-bottom: 1.25rem;
 }
 
 .lib-stat-card {
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 16px;
-    padding: 1rem 1.25rem;
+    padding: 1rem 1.15rem;
     display: flex;
     flex-direction: column;
     gap: 0.3rem;
 }
 
 .lib-stat-val {
-    font-size: 1.8rem;
+    font-size: 1.9rem;
     font-weight: 700;
     color: var(--accent);
     line-height: 1;
-    min-height: 1.8rem;
+    min-height: 1.9rem;
     display: block;
 }
 
 .lib-stat-lbl {
-    font-size: 0.72rem;
+    font-size: 0.68rem;
     color: var(--text3);
     text-transform: uppercase;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.08em;
     font-weight: 600;
 }
 
-/* ── Setlists section ──────────────────────────────── */
+/* ── Filter pills ──────────────────────────────────────── */
+.lib-filter-pills {
+    display: flex;
+    gap: 0.45rem;
+    overflow-x: auto;
+    scrollbar-width: none;
+    padding-bottom: 0.25rem;
+    margin-bottom: 1.25rem;
+    -webkit-overflow-scrolling: touch;
+}
+.lib-filter-pills::-webkit-scrollbar { display: none; }
+
+.lib-pill {
+    flex-shrink: 0;
+    padding: 0.38rem 1rem;
+    border-radius: 20px;
+    border: 1.5px solid var(--border);
+    background: var(--surface);
+    color: var(--text2);
+    font-size: 0.83rem;
+    font-weight: 500;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background 0.18s, color 0.18s, border-color 0.18s;
+    white-space: nowrap;
+    line-height: 1.4;
+}
+.lib-pill:hover { background: var(--surface2); color: var(--text); }
+.lib-pill.active {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+    font-weight: 600;
+}
+
+/* ── Setlists section ──────────────────────────────────── */
 .lib-setlists-section {
     margin-bottom: 1.5rem;
 }
@@ -226,7 +147,7 @@ body:not(.light-mode) .lib-icon-sun { display: none; }
 }
 
 .lib-section-title {
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     font-weight: 700;
     color: var(--text2);
     text-transform: uppercase;
@@ -262,7 +183,7 @@ body:not(.light-mode) .lib-icon-sun { display: none; }
 
 .lib-setlists-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
     gap: 0.75rem;
     margin-bottom: 1rem;
 }
@@ -300,49 +221,55 @@ body:not(.light-mode) .lib-icon-sun { display: none; }
 }
 .lib-setlist-count { font-size: 0.72rem; color: var(--text3); margin-top: 0.1rem; }
 
-/* ── Toolbar ───────────────────────────────────────── */
+/* ── Toolbar ───────────────────────────────────────────── */
 .lib-toolbar {
     display: flex;
-    gap: 0.75rem;
+    gap: 0.65rem;
     align-items: center;
-    flex-wrap: wrap;
     margin-bottom: 1rem;
 }
 
-.lib-search-wrap { flex: 1; min-width: 200px; }
+/* ── Search bar (filled, rounded, icon inside) ─────────── */
+.lib-search-wrap {
+    flex: 1;
+    min-width: 0;
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.lib-search-icon {
+    position: absolute;
+    left: 0.9rem;
+    color: var(--text3);
+    pointer-events: none;
+    display: flex;
+    align-items: center;
+    line-height: 0;
+}
 
 .lib-search-input {
     width: 100%;
-    padding: 0.6rem 0.9rem;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px;
+    padding: 0.65rem 1rem 0.65rem 2.5rem;
+    background: var(--surface2);
+    border: none;
+    border-radius: 24px;
     color: var(--text);
     font-size: 0.9rem;
     font-family: inherit;
     outline: none;
-    transition: border-color 0.2s;
+    transition: background 0.2s, box-shadow 0.2s;
+    appearance: none;
+    -webkit-appearance: none;
 }
-.lib-search-input:focus { border-color: var(--accent); }
+.lib-search-input:focus {
+    background: var(--surface);
+    box-shadow: 0 0 0 2px var(--accent);
+}
 .lib-search-input::placeholder { color: var(--text3); }
 
-.lib-filter-group { display: flex; gap: 0.5rem; }
-
-.lib-filter-select {
-    padding: 0.55rem 0.75rem;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    color: var(--text);
-    font-size: 0.84rem;
-    font-family: inherit;
-    cursor: pointer;
-    outline: none;
-    transition: border-color 0.2s;
-}
-.lib-filter-select:focus { border-color: var(--accent); }
-
-.lib-view-btns { display: flex; gap: 0.25rem; }
+/* ── View toggle ───────────────────────────────────────── */
+.lib-view-btns { display: flex; gap: 0.25rem; flex-shrink: 0; }
 
 .lib-view-btn {
     padding: 0.5rem 0.7rem;
@@ -358,7 +285,7 @@ body:not(.light-mode) .lib-icon-sun { display: none; }
 .lib-view-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
 .lib-view-btn:hover:not(.active) { background: var(--surface); color: var(--text); }
 
-/* ── Table ─────────────────────────────────────────── */
+/* ── Table ─────────────────────────────────────────────── */
 .lib-table-wrap {
     overflow-x: auto;
     border-radius: 16px;
@@ -401,11 +328,10 @@ body:not(.light-mode) .lib-icon-sun { display: none; }
 .lib-cell-actions { white-space: nowrap; }
 .lib-cell-pos    { width: 2.5rem; color: var(--text3); font-size: 0.78rem; font-variant-numeric: tabular-nums; text-align: center; }
 
-/* Rows / cards openable via double-click */
 .lib-row-openable { cursor: pointer; }
 .lib-grid-card[data-id] { cursor: pointer; }
 
-/* ── Fav button ────────────────────────────────────── */
+/* ── Fav button ────────────────────────────────────────── */
 .lib-fav-btn {
     background: none;
     border: none;
@@ -419,7 +345,7 @@ body:not(.light-mode) .lib-icon-sun { display: none; }
 .lib-fav-btn:hover  { transform: scale(1.25); }
 .lib-fav-btn.active { color: #e55; }
 
-/* ── Row action buttons ────────────────────────────── */
+/* ── Row action buttons ────────────────────────────────── */
 .lib-row-btn {
     background: var(--surface2);
     border: 1px solid var(--border);
@@ -436,7 +362,7 @@ body:not(.light-mode) .lib-icon-sun { display: none; }
 .lib-row-btn:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
 .lib-row-btn.danger:hover { background: #c0392b; border-color: #c0392b; }
 
-/* ── Badges & Tags ─────────────────────────────────── */
+/* ── Badges & Tags ─────────────────────────────────────── */
 .lib-badge {
     display: inline-block;
     background: var(--surface2);
@@ -462,7 +388,7 @@ body:not(.light-mode) .lib-icon-sun { display: none; }
 
 .lib-tags-wrap { max-width: 160px; overflow: hidden; }
 
-/* ── Tag chip editor ────────────────────────────────── */
+/* ── Tag chip editor ────────────────────────────────────── */
 .lib-tag-editor {
     border: 1px solid var(--border);
     border-radius: 10px;
@@ -540,7 +466,7 @@ body:not(.light-mode) .lib-icon-sun { display: none; }
 }
 .lib-tag-input-field::placeholder { color: var(--text3); }
 
-/* ── Color palette popup ────────────────────────────── */
+/* ── Color palette popup ────────────────────────────────── */
 .lib-color-palette {
     position: fixed;
     z-index: 99999;
@@ -582,7 +508,7 @@ body:not(.light-mode) .lib-icon-sun { display: none; }
 }
 .lib-color-swatch--none:hover { border-color: #e74c3c; color: #e74c3c; transform: scale(1.1); }
 
-/* ── Tag color accents on rows & cards ──────────────── */
+/* ── Tag color accents on rows & cards ──────────────────── */
 tr[data-accent] { background: color-mix(in srgb, var(--row-color) 5%, transparent) !important; }
 tr[data-accent] td:first-child { box-shadow: inset 3px 0 0 var(--row-color); }
 tr[data-accent]:hover { background: color-mix(in srgb, var(--row-color) 10%, var(--surface)) !important; }
@@ -596,10 +522,10 @@ tr[data-accent]:hover { background: color-mix(in srgb, var(--row-color) 10%, var
     );
 }
 
-/* ── Grid view ─────────────────────────────────────── */
+/* ── Grid view ─────────────────────────────────────────── */
 .lib-songs-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
     gap: 1rem;
 }
 
@@ -634,7 +560,7 @@ tr[data-accent]:hover { background: color-mix(in srgb, var(--row-color) 10%, var
     border-top: 1px solid var(--border);
 }
 
-/* ── Setlist pick list (in modal) ──────────────────── */
+/* ── Setlist pick list ─────────────────────────────────── */
 .lib-setlist-pick-item {
     display: flex;
     align-items: center;
@@ -654,7 +580,7 @@ tr[data-accent]:hover { background: color-mix(in srgb, var(--row-color) 10%, var
 .lib-setlist-pick-item:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
 .lib-setlist-pick-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
 
-/* ── Skeleton loaders ──────────────────────────────── */
+/* ── Skeleton loaders ──────────────────────────────────── */
 .lib-skeleton {
     display: inline-block;
     border-radius: 6px;
@@ -670,7 +596,7 @@ tr[data-accent]:hover { background: color-mix(in srgb, var(--row-color) 10%, var
 
 .lib-skeleton-text {
     width: 2.5rem;
-    height: 1.8rem;
+    height: 1.9rem;
     vertical-align: middle;
 }
 
@@ -686,19 +612,29 @@ tr[data-accent]:hover { background: color-mix(in srgb, var(--row-color) 10%, var
     animation: lib-shimmer 1.5s infinite;
 }
 
-/* ── Empty / error states ──────────────────────────── */
+/* ── Empty state ───────────────────────────────────────── */
 .lib-empty {
     text-align: center;
-    padding: 4rem 1rem;
+    padding: 3.5rem 1rem;
     color: var(--text3);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
 }
-.lib-empty p { margin-bottom: 0.5rem; }
+.lib-empty-icon {
+    font-size: 2.75rem;
+    opacity: 0.35;
+    line-height: 1;
+    margin-bottom: 0.25rem;
+}
+.lib-empty p { font-size: 0.9rem; }
 
-/* ── Notifications ─────────────────────────────────── */
+/* ── Notifications ─────────────────────────────────────── */
 .lib-notif {
     position: fixed;
-    bottom: 1.75rem;
-    right: 1.75rem;
+    bottom: calc(64px + env(safe-area-inset-bottom, 0px) + 1rem);
+    right: 1.25rem;
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 14px;
@@ -711,51 +647,90 @@ tr[data-accent]:hover { background: color-mix(in srgb, var(--row-color) 10%, var
     transition: opacity 0.25s, transform 0.25s;
     pointer-events: none;
     z-index: 99999;
-    max-width: 320px;
+    max-width: 300px;
 }
 .lib-notif.show { opacity: 1; transform: translateY(0); }
 .lib-notif.error { border-color: #e55; color: #e55; }
 .lib-notif.success { border-color: var(--accent); }
 
-/* ── Responsive ────────────────────────────────────── */
-@media (max-width: 900px) {
-    .lib-stats-row { grid-template-columns: repeat(2, 1fr); }
+/* ── Bottom Navigation Bar ─────────────────────────────── */
+.lib-bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: calc(64px + env(safe-area-inset-bottom, 0px));
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    display: flex;
+    align-items: stretch;
+    z-index: 200;
 }
 
-@media (max-width: 768px) {
-    .lib-sidebar {
-        position: fixed;
-        left: -240px;
-        top: 0;
-        height: 100vh;
-        width: 240px;
-        z-index: 100;
-        box-shadow: 4px 0 24px rgba(0,0,0,0.25);
-    }
-    .lib-sidebar.open { left: 0; }
-    .lib-menu-btn { display: flex; }
-    .lib-main { padding: 1.25rem; }
-    .lib-toolbar { flex-direction: column; align-items: stretch; }
-    .lib-filter-group { flex-wrap: wrap; }
+.lib-bnav-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.2rem;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text3);
+    font-family: inherit;
+    transition: color 0.18s;
+    padding: 0.5rem 0.25rem;
+    -webkit-tap-highlight-color: transparent;
+}
+.lib-bnav-item:hover { color: var(--text2); }
+.lib-bnav-item.active { color: var(--accent); }
+
+.lib-bnav-icon {
+    font-size: 1.3rem;
+    line-height: 1;
+    transition: transform 0.18s;
+}
+.lib-bnav-item.active .lib-bnav-icon { transform: scale(1.12); }
+
+.lib-bnav-label {
+    font-size: 0.65rem;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    line-height: 1;
 }
 
-@media (max-width: 480px) {
-    .lib-stats-row { grid-template-columns: repeat(2, 1fr); gap: 0.6rem; }
-    .lib-stat-val  { font-size: 1.4rem; }
-    .lib-page-title { font-size: 1.2rem; }
-    .lib-songs-grid { grid-template-columns: 1fr; }
+/* ── SFM position adjusted for bottom nav ──────────────── */
+#sfmGroup {
+    bottom: calc(64px + env(safe-area-inset-bottom, 0px) + 16px);
 }
 
-/* ── Page Transition Entry ─────────────────────────────────────── */
+#personalizarPanel {
+    bottom: calc(64px + env(safe-area-inset-bottom, 0px) + 86px);
+}
+
+/* ── Page transition entry ─────────────────────────────── */
 .lib-shell {
     animation: page-enter 0.5s cubic-bezier(0.4, 0, 0.2, 1) both;
     will-change: opacity, transform;
 }
 
-/* ── Real-time search fade ──────────────────────────────────────── */
+/* ── Real-time search fade ─────────────────────────────── */
 #libSongsList {
     transition: opacity 0.12s ease;
 }
 #libSongsList.lib-filtering {
     opacity: 0.45;
+}
+
+/* ── Responsive ────────────────────────────────────────── */
+@media (max-width: 480px) {
+    .lib-main { padding: 1.15rem 1.15rem 0; padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px) + 1.15rem); }
+    .lib-stat-val  { font-size: 1.5rem; }
+    .lib-page-title { font-size: 1.4rem; }
+    .lib-songs-grid { grid-template-columns: 1fr; }
+    .lib-toolbar { flex-wrap: wrap; }
 }

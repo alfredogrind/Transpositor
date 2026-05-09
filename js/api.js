@@ -1,6 +1,4 @@
-const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-    ? 'http://localhost:3000/api'
-    : 'https://TU_BACKEND.up.railway.app/api';
+const API_URL = window.location.origin + '/api';
 
 class API {
     static async _fetch(path, opts = {}) {
@@ -44,11 +42,11 @@ class API {
                 nombre:       datos.nombre,
                 tono_original: datos.tonoOriginal,
                 bpm:          datos.bpm ? parseInt(datos.bpm) : null,
-                etiquetas:    Array.isArray(datos.etiquetas)
-                                ? datos.etiquetas
-                                : (datos.etiquetas || '').split(',').map(e => e.trim()).filter(Boolean),
-                notas:        datos.notas,
-                letra_acordes: datos.letrasAcordes || null,
+                                 etiquetas:    Array.isArray(datos.etiquetas)
+                                 ? datos.etiquetas
+                                 : (datos.etiquetas || '').split(',').map(e => e.trim()).filter(Boolean),
+                                 notas:        datos.notas,
+                                 letra_acordes: datos.letrasAcordes || null,
             })
         });
         return json.data;
@@ -63,10 +61,10 @@ class API {
                 nombre:       datos.nombre,
                 tono_original: datos.tonoOriginal,
                 bpm:          datos.bpm ? parseInt(datos.bpm) : null,
-                etiquetas:    Array.isArray(datos.etiquetas)
-                                ? datos.etiquetas
-                                : (datos.etiquetas || '').split(',').map(e => e.trim()).filter(Boolean),
-                notas:        datos.notas,
+                                 etiquetas:    Array.isArray(datos.etiquetas)
+                                 ? datos.etiquetas
+                                 : (datos.etiquetas || '').split(',').map(e => e.trim()).filter(Boolean),
+                                 notas:        datos.notas,
             })
         });
         return json.data;
@@ -124,6 +122,18 @@ class API {
 
     static async eliminarSetlist(id) {
         await API._fetch(`/setlists/${id}`, { method: 'DELETE' });
+    }
+
+    // ── Importar desde LaCuerda ────────────────────────
+    static async lacuerda(url) {
+        const json = await API._fetch(`/lacuerda?url=${encodeURIComponent(url)}`);
+        return json.data;
+    }
+
+    // ── Importar desde CifraClub ───────────────────────
+    static async cifraclub(url) {
+        const json = await API._fetch(`/cifraclub?url=${encodeURIComponent(url)}`);
+        return json.data;
     }
 }
 

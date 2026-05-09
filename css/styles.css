@@ -17,6 +17,13 @@
   --chord-odd-text: #f5f5f7;
   --chord-even-text: #000000;
   --wave-color: rgba(255, 255, 255, 0.4);
+  /* Chord repeat block — dark mode */
+  --repeat-green: #22c55e;
+  --repeat-block-bg: #1e261e;
+  --repeat-block-border: #22c55e22;
+  --repeat-pill-bg: #253025;
+  --repeat-pill-color: #c8e6c9;
+  --repeat-pill-border: #22c55e22;
 }
 
 body.light-mode {
@@ -32,6 +39,12 @@ body.light-mode {
   --chord-odd-bg: var(--surface2);
   --chord-odd-text: #1d1d1f;
   --wave-color: rgba(0, 0, 0, 0.15);
+  /* Chord repeat block — light mode */
+  --repeat-block-bg: #f0fdf4;
+  --repeat-block-border: #22c55e33;
+  --repeat-pill-bg: #dcfce7;
+  --repeat-pill-color: #166534;
+  --repeat-pill-border: #22c55e44;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-font-smoothing: antialiased; }
@@ -326,6 +339,76 @@ main {
 
 .chord-grid { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
 
+/* ── Chord Repeat Block ──────────────────────────────────────────────────── */
+
+/* Espaciado vertical entre bloques consecutivos dentro de una sección */
+.chord-repeat-group + .chord-grid,
+.chord-repeat-group + .chord-repeat-group,
+.chord-grid + .chord-repeat-group {
+    margin-top: 10px;
+}
+
+/* Contenedor del bloque */
+.chord-repeat-group {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    background: var(--repeat-block-bg);
+    border: 1px solid var(--repeat-block-border);
+    border-top: 3px solid var(--repeat-green);
+    border-radius: 10px;
+    padding: 12px 14px;
+}
+
+/* Fila de cabecera: "↻ Loop" a la izquierda, "×N" a la derecha */
+.repeat-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.repeat-loop-label {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--repeat-green);
+    user-select: none;
+}
+
+.repeat-badge {
+    background: color-mix(in srgb, var(--repeat-green) 9%, transparent);
+    color: var(--repeat-green);
+    border: 1px solid color-mix(in srgb, var(--repeat-green) 27%, transparent);
+    border-radius: 20px;
+    padding: 2px 10px;
+    font-size: 12px;
+    font-weight: 700;
+    white-space: nowrap;
+    user-select: none;
+    font-family: 'SF Mono', monospace;
+}
+
+/* Chord-grid interno: gap 8px horizontal y vertical */
+.chord-repeat-group .chord-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: flex-start;
+}
+
+/* Pills dentro del bloque de repetición */
+.chord-repeat-group .chord-pill,
+.chord-repeat-group .chord-result {
+    background: var(--repeat-pill-bg);
+    color: var(--repeat-pill-color);
+    border: 1px solid var(--repeat-pill-border);
+    border-radius: 8px;
+    padding: 6px 14px;
+    font-size: 14px;
+    font-weight: 500;
+}
+
 .grid-tones { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; width: 100%; }
 
 .chord-pill, .chord-result {
@@ -338,6 +421,31 @@ main {
   font-weight: 500;
   padding: 8px 14px;
   transition: var(--transition);
+}
+
+.chord-repeat-mark {
+  display: inline-flex;
+  align-items: center;
+  color: var(--accent);
+  font-family: 'SF Mono', monospace;
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: -0.06em;
+  padding: 8px 4px;
+  opacity: 0.72;
+  user-select: none;
+  align-self: center;
+}
+
+/* Pill que contiene marcadores embebidos (ej. ||C o F||) */
+.chord-has-repeat {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+}
+.chord-has-repeat > .chord-repeat-mark {
+  padding: 0 2px;
+  font-size: 0.9em;
 }
 
 .btn-tone {
@@ -434,6 +542,85 @@ html[data-chord-size="xl"] { font-size: 20px; }
     background: var(--accent);
     color: var(--bg);
     box-shadow: 0 2px 8px var(--accent-glow);
+}
+
+/* ── Toggle de tonalidad detectada (Mayor / menor) ──────────────────────── */
+.key-mode-row {
+    margin-bottom: 1.25rem;
+}
+
+.km-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.km-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text2);
+    white-space: nowrap;
+}
+
+.km-toggle {
+    display: flex;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 3px;
+    gap: 2px;
+}
+
+.km-btn {
+    padding: 6px 16px;
+    border-radius: 16px;
+    border: none;
+    background: transparent;
+    color: var(--text2);
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition);
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+}
+
+.km-btn.active {
+    background: var(--accent);
+    color: var(--bg);
+    box-shadow: 0 2px 8px var(--accent-glow);
+}
+
+.km-confidence {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.6rem;
+    justify-content: center;
+}
+
+.km-confidence-bar {
+    height: 4px;
+    max-width: 120px;
+    min-width: 4px;
+    border-radius: 2px;
+    transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    background: var(--accent);
+    opacity: 0.5;
+}
+
+.km-confidence-bar--alta  { opacity: 0.9; }
+.km-confidence-bar--media { opacity: 0.6; }
+.km-confidence-bar--baja  { opacity: 0.35; }
+
+.km-confidence-pct {
+    font-size: 0.68rem;
+    color: var(--text3);
+    letter-spacing: 0.05em;
 }
 
 /* Modal de alerta — reutiliza el sistema de diseño del modal original */
@@ -1225,35 +1412,6 @@ body.light-mode .save-panel-popup .sp-tag-editor:focus-within {
     .lib-modal-body { padding: 1rem 1.25rem 1.25rem; }
 }
 
-/* Notificaciones */
-.lib-notif {
-    position: fixed;
-    top: 1.5rem;
-    right: 1.5rem;
-    background: var(--surface2);
-    border: 1px solid var(--accent);
-    color: var(--text);
-    padding: 0.75rem 1.25rem;
-    border-radius: 0.9rem;
-    font-size: 0.88rem;
-    z-index: 9999;
-    opacity: 0;
-    transform: translateY(-8px);
-    transition: opacity 0.25s, transform 0.25s;
-    backdrop-filter: blur(20px);
-    box-shadow: var(--card-shadow);
-}
-
-.lib-notif-show {
-    opacity: 1;
-    transform: translateY(0);
-}
-
-.lib-notif-error {
-    border-color: #c0392b;
-    color: #e74c3c;
-}
-
 /* ── Panel Personalizar ─────────────────────────────────────────────────── */
 .personalizar-panel {
     position: fixed;
@@ -1548,6 +1706,69 @@ body.light-mode .save-panel-popup .sp-tag-editor:focus-within {
 .lib-toast--warn {
     border-color: var(--border);
     color: var(--text2);
+}
+
+/* ── URL Import (LaCuerda) ─────────────────────────────────────── */
+.url-import-row {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+    margin-top: 0.35rem;
+}
+
+.btn-url-import {
+    background: none;
+    border: none;
+    color: var(--accent);
+    font-size: 0.78rem;
+    font-weight: 500;
+    cursor: pointer;
+    padding: 0.15rem 0.4rem;
+    opacity: 0.7;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    transition: opacity 0.2s;
+    font-family: inherit;
+}
+.btn-url-import:hover { opacity: 1; }
+
+.url-import-panel {
+    display: flex;
+    gap: 0.5rem;
+    width: 100%;
+    max-width: 380px;
+    animation: lcFadeDown 0.18s ease;
+}
+
+.url-import-input {
+    flex: 1;
+    min-width: 0;
+    background: var(--surface2, rgba(255,255,255,0.06));
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.78rem;
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.2s;
+    font-family: inherit;
+}
+.url-import-input:focus    { border-color: var(--accent); }
+.url-import-input::placeholder { color: var(--text3); font-size: 0.74rem; }
+
+.btn-url-go {
+    padding: 0.5rem 1rem !important;
+    font-size: 0.8rem !important;
+    margin-top: 0 !important;
+    flex-shrink: 0;
+    height: auto;
+}
+
+@keyframes lcFadeDown {
+    from { opacity: 0; transform: translateY(-4px); }
+    to   { opacity: 1; transform: translateY(0); }
 }
 
 /* ── Setlist Popup ──────────────────────────────────────────────── */

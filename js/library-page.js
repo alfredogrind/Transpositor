@@ -52,42 +52,77 @@ async function init() {
     setupNav();
     setupMobileSidebar();
     setupToolbar();
+    setupFilterPills();
     setupViewBtns();
     setupModals();
     setupTagEditor();
     setupSongActions();
     setupSetlistActions();
     updateViewBtns();
+    syncFilterPills();
     await Promise.all([loadStats(), loadFavs(), loadSongs()]);
 }
 
 // ── Navigation ─────────────────────────────────────────────────
 function setupNav() {
-    libNav?.querySelectorAll('.lib-nav-item').forEach(btn => {
+    document.querySelectorAll('.lib-bnav-item').forEach(btn => {
         btn.addEventListener('click', () => {
-            setSection(btn.dataset.section);
-            closeMobileSidebar();
+            const section = btn.dataset.section;
+            if (section === 'transpositor') {
+                const overlay = document.getElementById('pageTransitionOverlay');
+                if (overlay) {
+                    overlay.classList.add('active');
+                    setTimeout(() => { window.location.href = 'index.html'; }, 300);
+                } else {
+                    window.location.href = 'index.html';
+                }
+            } else {
+                setSection(section);
+            }
         });
     });
+}
 
-    document.querySelector('.lib-back-btn')?.addEventListener('click', e => {
-        e.preventDefault();
-        const overlay = document.getElementById('pageTransitionOverlay');
-        if (overlay) {
-            overlay.classList.add('active');
-            setTimeout(() => { window.location.href = 'index.html'; }, 300);
-        } else {
-            window.location.href = 'index.html';
+function syncFilterPills() {
+    document.querySelectorAll('.lib-pill').forEach(pill => {
+        const f = pill.dataset.filter;
+        let active = false;
+        if      (f === 'favoritos') active = currentSection === 'favoritos';
+        else if (f === 'setlists')  active = currentSection === 'setlists';
+        else if (f === 'recientes') active = currentSection === 'canciones' && filters.sort === 'recent';
+        else if (f === 'todos')     active = currentSection === 'canciones' && filters.sort !== 'recent';
+        pill.classList.toggle('active', active);
+    });
+}
+
+function setupFilterPills() {
+    document.getElementById('libFilterPills')?.addEventListener('click', e => {
+        const pill = e.target.closest('.lib-pill');
+        if (!pill) return;
+        const f = pill.dataset.filter;
+        if (f === 'favoritos') {
+            setSection('favoritos');
+        } else if (f === 'setlists') {
+            setSection('setlists');
+        } else if (f === 'recientes') {
+            filters.sort = 'recent';
+            if (libFilterSort) libFilterSort.value = 'recent';
+            setSection('canciones');
+        } else if (f === 'todos') {
+            filters.sort = 'alpha';
+            if (libFilterSort) libFilterSort.value = 'alpha';
+            setSection('canciones');
         }
     });
 }
 
 function setSection(section) {
     currentSection = section;
-    libNav?.querySelectorAll('.lib-nav-item').forEach(b =>
+    document.querySelectorAll('.lib-bnav-item').forEach(b =>
         b.classList.toggle('active', b.dataset.section === section)
     );
-    const titles = { canciones: 'Mis Canciones', favoritos: 'Favoritos', setlists: 'Setlists' };
+    syncFilterPills();
+    const titles = { canciones: 'Mis canciones', favoritos: 'Favoritos', setlists: 'Setlists' };
     if (libPageTitle) libPageTitle.textContent = titles[section] || 'Biblioteca';
 
     if (section === 'setlists') {
@@ -155,7 +190,7 @@ async function loadSongs() {
         songs = await API.listar(params);
         renderSongs(applySearchFilter(songs));
     } catch (_) {
-        libSongsList.innerHTML = `<div class="lib-empty"><p>No se pudo cargar las canciones.</p></div>`;
+        libSongsList.innerHTML = `<div class="lib-empty"><span class="lib-empty-icon">⚠</span><p>No se pudo cargar las canciones.</p></div>`;
     }
 }
 
@@ -201,7 +236,7 @@ function showSkeletons() {
 
 function renderSongs(data) {
     if (!data.length) {
-        libSongsList.innerHTML = `<div class="lib-empty"><p>No hay canciones aquí todavía.</p></div>`;
+        libSongsList.innerHTML = `<div class="lib-empty"><span class="lib-empty-icon">♫</span><p>No hay canciones aquí todavía.</p></div>`;
         return;
     }
     viewMode === 'table' ? renderTable(data) : renderGrid(data);

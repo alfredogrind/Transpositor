@@ -1,3 +1,105 @@
+import { REPEAT_TOKENS } from './music.js';
+
+// Detecta si `chords` es una repetición TOTAL de una unidad más corta.
+// Devuelve { unit, count } o null.
+function _detectRepeat(chords) {
+    const len = chords.length;
+    if (len < 2) return null;
+    for (let p = 1; p <= Math.floor(len / 2); p++) {
+        if (len % p !== 0) continue;
+        const count = len / p;
+        let ok = true;
+        outer: for (let i = 1; i < count; i++) {
+            for (let j = 0; j < p; j++) {
+                if (chords[i * p + j] !== chords[j]) { ok = false; break outer; }
+            }
+        }
+        if (ok) return { unit: chords.slice(0, p), count };
+    }
+    return null;
+}
+
+// Detecta si el INICIO de `chords` es una unidad que se repite N≥2 veces
+// consecutivas, seguida de otros acordes distintos.
+// Solo se usa cuando _detectRepeat ya falló (el array no es repetición total).
+// Devuelve { unit, count, tail } o null.
+function _detectPrefixRepeat(chords) {
+    const len = chords.length;
+    if (len < 3) return null;
+    for (let p = 1; p <= Math.floor(len / 2); p++) {
+        let count = 1;
+        while ((count + 1) * p <= len) {
+            let match = true;
+            for (let j = 0; j < p; j++) {
+                if (chords[count * p + j] !== chords[j]) { match = false; break; }
+            }
+            if (match) count++;
+            else break;
+        }
+        if (count >= 2) {
+            return { unit: chords.slice(0, p), count, tail: chords.slice(p * count) };
+        }
+    }
+    return null;
+}
+
+// Renderiza los acordes de una sección como HTML.
+// 1. Repetición total  → unidad + ×N
+// 2. Prefijo repetido  → unidad + ×N, luego aplica recursión en la cola
+// 3. Sin repetición    → chord-grid normal
+function _renderChordGroup(chords, labelFn, pillClass) {
+    if (!chords.length) return '';
+
+    const full = _detectRepeat(chords);
+    if (full) {
+        const pills = full.unit.map(c => _chordToken(c, labelFn, pillClass)).join('');
+        return `<div class="chord-repeat-group">`
+             + `<div class="repeat-header">`
+             + `<span class="repeat-loop-label">↻ Loop</span>`
+             + `<span class="repeat-badge" aria-label="${full.count} veces">×${full.count}</span>`
+             + `</div>`
+             + `<div class="chord-grid">${pills}</div>`
+             + `</div>`;
+    }
+
+    const prefix = _detectPrefixRepeat(chords);
+    if (prefix) {
+        const pills = prefix.unit.map(c => _chordToken(c, labelFn, pillClass)).join('');
+        return `<div class="chord-repeat-group">`
+             + `<div class="repeat-header">`
+             + `<span class="repeat-loop-label">↻ Loop</span>`
+             + `<span class="repeat-badge" aria-label="${prefix.count} veces">×${prefix.count}</span>`
+             + `</div>`
+             + `<div class="chord-grid">${pills}</div>`
+             + `</div>`
+             + _renderChordGroup(prefix.tail, labelFn, pillClass);
+    }
+
+    return `<div class="chord-grid">${chords.map(c => _chordToken(c, labelFn, pillClass)).join('')}</div>`;
+}
+
+function _chordToken(c, labelFn, baseClass) {
+    // Compatibilidad con datos antiguos en BD: token de marcador standalone
+    if (REPEAT_TOKENS.has(c)) return `<span class="chord-repeat-mark" aria-label="repetición">${c}</span>`;
+
+    // Nuevo formato: marcadores embebidos en el string del acorde (ej. '||C', 'F||')
+    const prefixMatch = c.match(/^(\|{2,}|\/{2,})/);
+    const prefix      = prefixMatch ? prefixMatch[1] : '';
+    const rest        = c.slice(prefix.length);
+    const suffixMatch = rest.match(/(\|{2,}|\/{2,})$/);
+    const suffix      = suffixMatch ? suffixMatch[1] : '';
+    const pure        = rest.slice(0, rest.length - suffix.length);
+
+    if (prefix || suffix) {
+        return `<span class="${baseClass} chord-has-repeat">`
+             + (prefix ? `<span class="chord-repeat-mark" aria-label="inicio repetición">${prefix}</span>` : '')
+             + labelFn(pure)
+             + (suffix ? `<span class="chord-repeat-mark" aria-label="fin repetición">${suffix}</span>` : '')
+             + `</span>`;
+    }
+    return `<span class="${baseClass}">${labelFn(c)}</span>`;
+}
+
 /**
  * Renderiza secciones con Grid Dinámico y Drag & Drop interactivo
  */
@@ -15,9 +117,7 @@ export function renderResults(container, data, onUpdate, onReorder, labelFn = c 
                 <div class="section-title" id="title-${index}" contenteditable="true" style="pointer-events:auto;">${item.section}</div>
                 <button class="btn-edit-icon" title="Editar nombre" style="pointer-events:auto;">✎</button>
             </div>
-            <div class="chord-grid">
-                ${item.chords.map(c => `<span class="chord-pill">${labelFn(c)}</span>`).join('')}
-            </div>
+            ${_renderChordGroup(item.chords, labelFn, 'chord-pill')}
         `;
 
         div.addEventListener('dragstart', (e) => {
@@ -85,7 +185,7 @@ export function renderFinalResults(container, data, labelFn = c => c) {
         card.className = 'section-box';
         card.innerHTML = `
             <div class="section-header"><div class="section-title">${item.section}</div></div>
-            <div class="chord-grid">${item.chords.map(c => `<span class="chord-result">${labelFn(c)}</span>`).join('')}</div>
+            ${_renderChordGroup(item.chords, labelFn, 'chord-result')}
         `;
         container.appendChild(card);
     });
@@ -96,6 +196,47 @@ export function renderDetectedKey(container, keyInfo) {
     const keyDisplay = keyInfo.quality === 'menor' ? keyInfo.root + 'm' : keyInfo.root;
     container.innerHTML = `<span class="f-key-label">Raíz</span><span class="f-key-value">${keyDisplay}</span>`;
     container.classList.add('visible');
+}
+
+/**
+ * Renderiza el toggle Mayor/menor con barra de confianza dentro de `container`.
+ * Llama a `onToggle(newQuality)` ('Mayor' | 'menor') cuando el usuario cambia.
+ */
+export function renderKeyToggle(container, keyInfo, onToggle) {
+    if (!container) return;
+    if (!keyInfo) { container.hidden = true; return; }
+
+    container.hidden = false;
+
+    const isMajor    = keyInfo.quality === 'Mayor';
+    const majorRoot  = isMajor ? keyInfo.root : (keyInfo.relative?.root ?? '?');
+    const minorRoot  = isMajor ? (keyInfo.relative?.root ?? '?') : keyInfo.root;
+    const confPct    = Math.round((keyInfo.confidence ?? 0) * 100);
+
+    const confLabel  = confPct >= 75 ? 'alta' : confPct >= 45 ? 'media' : 'baja';
+
+    container.innerHTML = `
+        <div class="km-row">
+            <span class="km-label">Tonalidad detectada</span>
+            <div class="km-toggle" role="group" aria-label="Modo de tonalidad">
+                <button type="button" class="km-btn${isMajor  ? ' active' : ''}" data-mode="Mayor">${majorRoot} Mayor</button>
+                <button type="button" class="km-btn${!isMajor ? ' active' : ''}" data-mode="menor">${minorRoot}m</button>
+            </div>
+        </div>
+        <div class="km-confidence" title="Certeza de detección: ${confPct}%">
+            <div class="km-confidence-bar km-confidence-bar--${confLabel}" style="width:${confPct}%"></div>
+            <span class="km-confidence-pct">${confPct}%</span>
+        </div>
+    `;
+
+    container.querySelectorAll('.km-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            if (btn.classList.contains('active')) return;
+            container.querySelectorAll('.km-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            onToggle(btn.dataset.mode);
+        });
+    });
 }
 
 export function renderToneGrid(container, mode, onSelect) {

@@ -11,45 +11,17 @@
 </head>
 <body>
     <div class="lib-shell">
-
-        <!-- ── Sidebar ───────────────────────────────── -->
-        <aside class="lib-sidebar" id="libSidebar">
-            <div class="lib-sidebar-brand">
-                <span class="lib-brand-icon">♫</span>
-                <span class="lib-brand-name">Transport</span>
-            </div>
-
-            <nav class="lib-nav" id="libNav">
-                <button class="lib-nav-item active" data-section="canciones">
-                    <span class="lib-nav-icon">♪</span>Canciones
-                </button>
-                <button class="lib-nav-item" data-section="favoritos">
-                    <span class="lib-nav-icon">♥</span>Favoritos
-                </button>
-                <button class="lib-nav-item" data-section="setlists">
-                    <span class="lib-nav-icon">≡</span>Setlists
-                </button>
-            </nav>
-
-            <a href="index.html" class="lib-back-btn">← Transpositor</a>
-        </aside>
-
-        <!-- Mobile sidebar overlay -->
-        <div class="lib-sidebar-overlay" id="libSidebarOverlay"></div>
-
-        <!-- ── Main ──────────────────────────────────── -->
         <div class="lib-main">
 
-            <!-- Topbar -->
+            <!-- ── App bar ─────────────────────────────────── -->
             <div class="lib-topbar">
-                <button class="lib-menu-btn" id="libMenuBtn" aria-label="Abrir menú">
-                    <span></span><span></span><span></span>
-                </button>
-                <h1 class="lib-page-title" id="libPageTitle">Mis Canciones</h1>
-                <div class="lib-topbar-right"></div>
+                <h1 class="lib-page-title" id="libPageTitle">Mis canciones</h1>
+                <div class="lib-topbar-right">
+                    <div class="lib-avatar" id="libAvatar">♪</div>
+                </div>
             </div>
 
-            <!-- Stats row -->
+            <!-- Stats 2×2 -->
             <div class="lib-stats-row">
                 <div class="lib-stat-card">
                     <span class="lib-stat-val" id="statTotal"><span class="lib-skeleton lib-skeleton-text"></span></span>
@@ -61,12 +33,20 @@
                 </div>
                 <div class="lib-stat-card">
                     <span class="lib-stat-val" id="statBpm"><span class="lib-skeleton lib-skeleton-text"></span></span>
-                    <span class="lib-stat-lbl">BPM prom.</span>
+                    <span class="lib-stat-lbl">BPM Prom.</span>
                 </div>
                 <div class="lib-stat-card">
                     <span class="lib-stat-val" id="statTono"><span class="lib-skeleton lib-skeleton-text"></span></span>
-                    <span class="lib-stat-lbl">Tono frec.</span>
+                    <span class="lib-stat-lbl">Tono Frec.</span>
                 </div>
+            </div>
+
+            <!-- ── Filter pills ───────────────────────────── -->
+            <div class="lib-filter-pills" id="libFilterPills">
+                <button class="lib-pill active" data-filter="recientes">Recientes</button>
+                <button class="lib-pill" data-filter="todos">Todos</button>
+                <button class="lib-pill" data-filter="favoritos">Favoritos</button>
+                <button class="lib-pill" data-filter="setlists">Setlists</button>
             </div>
 
             <!-- Setlists section (visible in "setlists" view) -->
@@ -87,30 +67,34 @@
                 <!-- Toolbar -->
                 <div class="lib-toolbar" id="libToolbar">
                     <div class="lib-search-wrap">
+                        <span class="lib-search-icon">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                            </svg>
+                        </span>
                         <input type="search" id="libSearch" class="lib-search-input"
                                placeholder="Buscar por nombre, artista, etiqueta…" autocomplete="off">
                     </div>
-                    <div class="lib-filter-group">
-                        <select id="libFilterKey" class="lib-filter-select">
-                            <option value="">Todos los tonos</option>
-                            <option value="C">Do (C)</option>
-                            <option value="C#">Do# (C#)</option>
-                            <option value="D">Re (D)</option>
-                            <option value="D#">Re# (D#)</option>
-                            <option value="E">Mi (E)</option>
-                            <option value="F">Fa (F)</option>
-                            <option value="F#">Fa# (F#)</option>
-                            <option value="G">Sol (G)</option>
-                            <option value="G#">Sol# (G#)</option>
-                            <option value="A">La (A)</option>
-                            <option value="A#">La# (A#)</option>
-                            <option value="B">Si (B)</option>
-                        </select>
-                        <select id="libFilterSort" class="lib-filter-select">
-                            <option value="recent">Recientes</option>
-                            <option value="alpha">A → Z</option>
-                        </select>
-                    </div>
+                    <!-- Hidden selects — logic preserved, not shown in UI -->
+                    <select id="libFilterKey" class="lib-filter-select" style="display:none;">
+                        <option value="">Todos los tonos</option>
+                        <option value="C">Do (C)</option>
+                        <option value="C#">Do# (C#)</option>
+                        <option value="D">Re (D)</option>
+                        <option value="D#">Re# (D#)</option>
+                        <option value="E">Mi (E)</option>
+                        <option value="F">Fa (F)</option>
+                        <option value="F#">Fa# (F#)</option>
+                        <option value="G">Sol (G)</option>
+                        <option value="G#">Sol# (G#)</option>
+                        <option value="A">La (A)</option>
+                        <option value="A#">La# (A#)</option>
+                        <option value="B">Si (B)</option>
+                    </select>
+                    <select id="libFilterSort" class="lib-filter-select" style="display:none;">
+                        <option value="recent">Recientes</option>
+                        <option value="alpha">A → Z</option>
+                    </select>
                     <div class="lib-view-btns">
                         <button class="lib-view-btn" data-mode="table" title="Vista tabla">≡</button>
                         <button class="lib-view-btn" data-mode="grid"  title="Vista cuadrícula">⊞</button>
@@ -123,6 +107,26 @@
 
         </div><!-- /lib-main -->
     </div><!-- /lib-shell -->
+
+    <!-- ── Bottom Navigation Bar ─────────────────────── -->
+    <nav class="lib-bottom-nav" id="libBottomNav" aria-label="Navegación principal">
+        <button class="lib-bnav-item active" data-section="canciones" aria-label="Canciones">
+            <span class="lib-bnav-icon">♪</span>
+            <span class="lib-bnav-label">Canciones</span>
+        </button>
+        <button class="lib-bnav-item" data-section="favoritos" aria-label="Favoritos">
+            <span class="lib-bnav-icon">♥</span>
+            <span class="lib-bnav-label">Favoritos</span>
+        </button>
+        <button class="lib-bnav-item" data-section="setlists" aria-label="Setlists">
+            <span class="lib-bnav-icon">≡</span>
+            <span class="lib-bnav-label">Setlists</span>
+        </button>
+        <button class="lib-bnav-item" data-section="transpositor" aria-label="Volver al transpositor">
+            <span class="lib-bnav-icon">↩</span>
+            <span class="lib-bnav-label">Transpositor</span>
+        </button>
+    </nav>
 
     <!-- ── Edit Modal ──────────────────────────────── -->
     <div id="libModalEditar" class="modal-overlay" aria-hidden="true">
